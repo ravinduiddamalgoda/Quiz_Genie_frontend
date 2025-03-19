@@ -15,6 +15,7 @@ export default function RootLayout({
         <Navbar brand="Quiz Genie" items={[
           { label: 'Home', href: '/' },
           { label: 'Battle', href: '/battle' },
+          { label: 'Review', href: '/review' },
           { label: 'About', href: '/about' },
           { label: 'Contact', href: '/contact' }
         ]} />
