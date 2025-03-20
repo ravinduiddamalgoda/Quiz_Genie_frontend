@@ -1,18 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   TextField,
   Button,
-  Box,
   Typography,
-  Snackbar,
-  Alert,
   CircularProgress,
   Paper,
   Divider,
   Tooltip,
-  Fade,
 } from "@mui/material";
 import {
   StarBorder,
@@ -22,14 +18,14 @@ import {
   SentimentNeutral,
   SentimentSatisfied,
   SentimentVerySatisfied,
-  EditNote,
-  Send,
   ArrowBack,
+  Send,
 } from "@mui/icons-material";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useRouter } from "next/navigation";
 
-// Define types for better type safety
+// Define types
 type FormDataType = {
   title: string;
   description: string;
@@ -44,143 +40,111 @@ type ErrorsType = {
   email: string;
 };
 
-// Custom hook for form handling
-const useReviewForm = (initialState: FormDataType) => {
-  const [formData, setFormData] = useState<FormDataType>(initialState);
-  const [errors, setErrors] = useState<ErrorsType>({
-    title: "",
-    description: "",
-    rating: "",
-    email: "",
-  });
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleCheckboxChange = (name: string, value: boolean) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  return {
-    formData,
-    errors,
-    submitted,
-    setErrors,
-    setSubmitted,
-    handleInputChange,
-    handleCheckboxChange,
-    resetForm: () => setFormData(initialState),
-  };
-};
-
 // Review sentiment icons mapping
 const sentimentIcons = [
   null,
-  <SentimentVeryDissatisfied
-    key="1"
-    fontSize="large"
-    className="text-red-500"
-  />,
-  <SentimentDissatisfied
-    key="2"
-    fontSize="large"
-    className="text-orange-500"
-  />,
+  <SentimentVeryDissatisfied key="1" fontSize="large" className="text-red-500" />,
+  <SentimentDissatisfied key="2" fontSize="large" className="text-orange-500" />,
   <SentimentNeutral key="3" fontSize="large" className="text-yellow-400" />,
   <SentimentSatisfied key="4" fontSize="large" className="text-green-500" />,
   <SentimentVerySatisfied key="5" fontSize="large" className="text-blue-500" />,
 ];
 
 const ReviewPage = () => {
-  // States for multi-step form
-  const [activeStep, setActiveStep] = useState<number>(0);
-  const [isAnimating, setIsAnimating] = useState<boolean>(false);
+  const router = useRouter();
+  
+  // States
+  const [activeStep, setActiveStep] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [rating, setRating] = useState<number | null>(null);
   const [hover, setHover] = useState<number | null>(null);
-  const [showSuccess, setShowSuccess] = useState<boolean>(false);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [charCount, setCharCount] = useState<number>(0);
-  const [formTouched, setFormTouched] = useState<boolean>(false);
-
-  // Initialize form with useReviewForm hook
-  const {
-    formData,
-    errors,
-    submitted,
-    setErrors,
-    setSubmitted,
-    handleInputChange,
-    handleCheckboxChange,
-    resetForm,
-  } = useReviewForm({
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [charCount, setCharCount] = useState(0);
+  const [formTouched, setFormTouched] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  
+  // Form data and errors
+  const [formData, setFormData] = useState<FormDataType>({
     title: "",
     description: "",
     email: "",
     wouldRecommend: null,
   });
+  
+  const [errors, setErrors] = useState<ErrorsType>({
+    title: "",
+    description: "",
+    rating: "",
+    email: "",
+  });
 
-  // Reset errors when form data changes
+  // Update character count and validate form when data changes
   useEffect(() => {
     if (submitted || formTouched) {
       validateStep(activeStep);
     }
-    // Update character count for description
+    
     if (activeStep === 1) {
       setCharCount(formData.description.length);
     }
   }, [formData, rating, submitted, activeStep, formTouched]);
 
+  // Form input handlers
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormTouched(true);
+  };
+
+  const handleCheckboxChange = (name: string, value: boolean) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormTouched(true);
+  };
+
   // Validate current step
-  const validateStep = useCallback(
-    (step: number) => {
-      let isValid = true;
-      const newErrors = { ...errors };
+  const validateStep = (step: number) => {
+    let isValid = true;
+    const newErrors = { ...errors };
 
-      // Step-specific validation
-      if (step === 0) {
-        if (!rating) {
-          newErrors.rating = "Please select a rating";
-          isValid = false;
-        } else {
-          newErrors.rating = "";
-        }
-      } else if (step === 1) {
-        if (!formData.title.trim()) {
-          newErrors.title = "Title is required";
-          isValid = false;
-        } else {
-          newErrors.title = "";
-        }
-
-        if (!formData.description.trim()) {
-          newErrors.description = "Description is required";
-          isValid = false;
-        } else if (formData.description.length < 20) {
-          newErrors.description = "Please provide at least 20 characters";
-          isValid = false;
-        } else {
-          newErrors.description = "";
-        }
-      } else if (step === 2 && formData.email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(formData.email)) {
-          newErrors.email = "Please enter a valid email address";
-          isValid = false;
-        } else {
-          newErrors.email = "";
-        }
+    if (step === 0) {
+      if (!rating) {
+        newErrors.rating = "Please select a rating";
+        isValid = false;
+      } else {
+        newErrors.rating = "";
+      }
+    } else if (step === 1) {
+      if (!formData.title.trim()) {
+        newErrors.title = "Title is required";
+        isValid = false;
+      } else {
+        newErrors.title = "";
       }
 
-      setErrors(newErrors);
-      return isValid;
-    },
-    [errors, rating, formData]
-  );
+      if (!formData.description.trim()) {
+        newErrors.description = "Description is required";
+        isValid = false;
+      } else if (formData.description.length < 20) {
+        newErrors.description = "Please provide at least 20 characters";
+        isValid = false;
+      } else {
+        newErrors.description = "";
+      }
+    } else if (step === 2 && formData.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        newErrors.email = "Please enter a valid email address";
+        isValid = false;
+      } else {
+        newErrors.email = "";
+      }
+    }
 
-  // Handle next step
+    setErrors(newErrors);
+    return isValid;
+  };
+
+  // Navigation handlers
   const handleNext = () => {
     if (validateStep(activeStep)) {
       setIsAnimating(true);
@@ -193,7 +157,6 @@ const ReviewPage = () => {
     }
   };
 
-  // Handle previous step
   const handleBack = () => {
     setIsAnimating(true);
     setTimeout(() => {
@@ -202,90 +165,53 @@ const ReviewPage = () => {
     }, 300);
   };
 
-  // Handle form submission
+  // Form submission handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
-    setFormTouched(true);
 
     if (validateStep(activeStep)) {
       setIsSubmitting(true);
-
-      // Show loading toast
-      const toastId = toast.loading("Submitting your review...", {
-        position: "bottom-center",
-      });
+      const toastId = toast.loading("Submitting your review...");
 
       try {
         // Simulate API call
         await new Promise((resolve) => setTimeout(resolve, 1500));
-
-        // Update toast to success
-        toast.update(toastId, {
-          render:
-            "Your review has been submitted successfully! Thank you for your feedback.",
-          type: "success",
-          isLoading: false,
-          autoClose: 5000,
-          closeButton: true,
-          closeOnClick: true,
-          draggable: true,
-        });
-
-        // Analytics event (in a real app)
-        console.log("Analytics: Review submitted", {
-          rating,
-          hasTitle: !!formData.title,
-          descriptionLength: formData.description.length,
-          wouldRecommend: formData.wouldRecommend,
-        });
-
-        // Reset form after successful submission
-        resetForm();
-        setRating(null);
-        setHover(null);
-        setSubmitted(false);
-        setActiveStep(0);
-
-        // Redirect user or show success state
-        setShowSuccess(true);
+        
+        // Redirect to thank you page
+        router.push('review/thankYouReview');
+        
       } catch (error) {
-        console.error("Error submitting review:", error);
-
-        // Update toast to error
         toast.update(toastId, {
-          render:
-            "There was a problem submitting your review. Please try again.",
+          render: "There was a problem submitting your review. Please try again.",
           type: "error",
           isLoading: false,
           autoClose: 5000,
           closeButton: true,
         });
-      } finally {
         setIsSubmitting(false);
       }
     } else {
-      // Show validation error toast
       toast.error("Please correct the errors before submitting.", {
         position: "bottom-center",
       });
     }
   };
 
-  // Get star color based on rating value
+  // Utility functions
   const getStarColor = (index: number): string => {
     const level = hover !== null ? hover : rating !== null ? rating : 0;
 
     if (index <= level) {
       return [
-        "text-red-500", // 1 star - Poor
-        "text-orange-500", // 2 stars - Fair
-        "text-yellow-400", // 3 stars - Good
-        "text-green-500", // 4 stars - Very Good
-        "text-blue-500", // 5 stars - Excellent
+        "text-red-500", // 1 star
+        "text-orange-500", // 2 stars
+        "text-yellow-400", // 3 stars
+        "text-green-500", // 4 stars
+        "text-blue-500", // 5 stars
       ][level - 1];
     }
-    return "text-gray-300"; // Lighter gray for better visibility
+    return "text-gray-300";
   };
 
   const getRatingLabel = (): string => {
@@ -296,13 +222,9 @@ const ReviewPage = () => {
   // Render steps
   const renderStep = () => {
     switch (activeStep) {
-      case 0:
+      case 0: // Rating step
         return (
-          <div
-            className={`transition-opacity duration-300 ${
-              isAnimating ? "opacity-0" : "opacity-100"
-            }`}
-          >
+          <div className={`transition-opacity duration-300 ${isAnimating ? "opacity-0" : "opacity-100"}`}>
             <div className="flex flex-col items-center mb-6">
               <Typography variant="h6" color="primary" gutterBottom>
                 How would you rate your experience?
@@ -310,18 +232,11 @@ const ReviewPage = () => {
 
               <div className="mt-6 mb-2">{sentimentIcons[rating || 0]}</div>
 
-              <Box
-                onMouseLeave={() => setHover(null)}
-                className="flex gap-4 mt-4 justify-center"
-              >
+              <div className="flex gap-4 mt-4 justify-center" onMouseLeave={() => setHover(null)}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Tooltip
                     key={star}
-                    title={
-                      ["Poor", "Fair", "Good", "Very Good", "Excellent"][
-                        star - 1
-                      ]
-                    }
+                    title={["Poor", "Fair", "Good", "Very Good", "Excellent"][star - 1]}
                     arrow
                     placement="top"
                   >
@@ -330,51 +245,20 @@ const ReviewPage = () => {
                       onClick={() => {
                         setRating(star);
                         setFormTouched(true);
-                        // Show toast on rating selection
-                        if (!rating) {
-                          toast.info(
-                            `You selected "${
-                              [
-                                "Poor",
-                                "Fair",
-                                "Good",
-                                "Very Good",
-                                "Excellent",
-                              ][star - 1]
-                            }"`,
-                            {
-                              position: "top-right",
-                              autoClose: 2000,
-                              hideProgressBar: true,
-                            }
-                          );
-                        }
                       }}
                       onMouseEnter={() => setHover(star)}
                     >
                       {star <= (hover ?? rating ?? 0) ? (
-                        <Star
-                          className={`transition-all duration-300 ${getStarColor(
-                            star
-                          )}`}
-                          fontSize="large"
-                        />
+                        <Star className={`transition-all duration-300 ${getStarColor(star)}`} fontSize="large" />
                       ) : (
-                        <StarBorder
-                          className="text-gray-300 transition-all duration-300"
-                          fontSize="large"
-                        />
+                        <StarBorder className="text-gray-300 transition-all duration-300" fontSize="large" />
                       )}
                     </div>
                   </Tooltip>
                 ))}
-              </Box>
+              </div>
 
-              <Typography
-                variant="subtitle1"
-                className="mt-3 font-medium"
-                color={rating || hover ? "primary" : "textSecondary"}
-              >
+              <Typography variant="subtitle1" className="mt-3 font-medium" color={rating || hover ? "primary" : "textSecondary"}>
                 {getRatingLabel()}
               </Typography>
 
@@ -386,13 +270,10 @@ const ReviewPage = () => {
             </div>
           </div>
         );
-      case 1:
+        
+      case 1: // Title and description step
         return (
-          <div
-            className={`transition-opacity duration-300 ${
-              isAnimating ? "opacity-0" : "opacity-100"
-            }`}
-          >
+          <div className={`transition-opacity duration-300 ${isAnimating ? "opacity-0" : "opacity-100"}`}>
             <div className="space-y-6">
               <div>
                 <Typography variant="h6" color="primary" gutterBottom>
@@ -401,10 +282,7 @@ const ReviewPage = () => {
                 <TextField
                   name="title"
                   value={formData.title}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    handleInputChange(e);
-                    setFormTouched(true);
-                  }}
+                  onChange={handleInputChange}
                   variant="outlined"
                   fullWidth
                   placeholder="Summarize your experience in a few words"
@@ -422,21 +300,14 @@ const ReviewPage = () => {
                   <Typography variant="h6" color="primary" gutterBottom>
                     Share your experience
                   </Typography>
-                  <Typography
-                    variant="caption"
-                    color={charCount >= 20 ? "success" : "textSecondary"}
-                  >
-                    {charCount}/200 characters{" "}
-                    {charCount < 20 ? `(${20 - charCount} more required)` : ""}
+                  <Typography variant="caption" color={charCount >= 20 ? "success" : "textSecondary"}>
+                    {charCount}/200 characters {charCount < 20 ? `(${20 - charCount} more required)` : ""}
                   </Typography>
                 </div>
                 <TextField
                   name="description"
                   value={formData.description}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    handleInputChange(e);
-                    setFormTouched(true);
-                  }}
+                  onChange={handleInputChange}
                   variant="outlined"
                   fullWidth
                   multiline
@@ -453,13 +324,10 @@ const ReviewPage = () => {
             </div>
           </div>
         );
-      case 2:
+        
+      case 2: // Final step and summary
         return (
-          <div
-            className={`transition-opacity duration-300 ${
-              isAnimating ? "opacity-0" : "opacity-100"
-            }`}
-          >
+          <div className={`transition-opacity duration-300 ${isAnimating ? "opacity-0" : "opacity-100"}`}>
             <div className="space-y-6">
               <div>
                 <Typography variant="h6" color="primary" gutterBottom>
@@ -467,31 +335,17 @@ const ReviewPage = () => {
                 </Typography>
                 <div className="flex gap-4 mt-2">
                   <Button
-                    variant={
-                      formData.wouldRecommend === true
-                        ? "contained"
-                        : "outlined"
-                    }
+                    variant={formData.wouldRecommend === true ? "contained" : "outlined"}
                     color="primary"
-                    onClick={() => {
-                      handleCheckboxChange("wouldRecommend", true);
-                      setFormTouched(true);
-                    }}
+                    onClick={() => handleCheckboxChange("wouldRecommend", true)}
                     className="flex-1"
                   >
                     Yes
                   </Button>
                   <Button
-                    variant={
-                      formData.wouldRecommend === false
-                        ? "contained"
-                        : "outlined"
-                    }
+                    variant={formData.wouldRecommend === false ? "contained" : "outlined"}
                     color="error"
-                    onClick={() => {
-                      handleCheckboxChange("wouldRecommend", false);
-                      setFormTouched(true);
-                    }}
+                    onClick={() => handleCheckboxChange("wouldRecommend", false)}
                     className="flex-1"
                   >
                     No
@@ -503,20 +357,13 @@ const ReviewPage = () => {
                 <Typography variant="h6" color="primary" gutterBottom>
                   Email (optional)
                 </Typography>
-                <Typography
-                  variant="caption"
-                  color="textSecondary"
-                  className="block mb-2"
-                >
+                <Typography variant="caption" color="textSecondary" className="block mb-2">
                   We'll notify you when your review is published
                 </Typography>
                 <TextField
                   name="email"
                   value={formData.email}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    handleInputChange(e);
-                    setFormTouched(true);
-                  }}
+                  onChange={handleInputChange}
                   variant="outlined"
                   fullWidth
                   placeholder="your.email@example.com"
@@ -542,16 +389,10 @@ const ReviewPage = () => {
                     </Typography>
                     <div className="flex">
                       {[...Array(rating || 0)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={getStarColor(i + 1)}
-                          fontSize="small"
-                        />
+                        <Star key={i} className={getStarColor(i + 1)} fontSize="small" />
                       ))}
                     </div>
-                    <Typography variant="body2">
-                      ({getRatingLabel()})
-                    </Typography>
+                    <Typography variant="body2">({getRatingLabel()})</Typography>
                   </div>
                   <Typography variant="body1" className="font-semibold mb-1">
                     {formData.title || "(No title provided)"}
@@ -572,6 +413,7 @@ const ReviewPage = () => {
             </div>
           </div>
         );
+        
       default:
         return null;
     }
@@ -593,11 +435,7 @@ const ReviewPage = () => {
               }`}
             />
             {step < 2 && (
-              <div
-                className={`h-0.5 w-8 my-auto transition-all ${
-                  step < activeStep ? "bg-blue-400" : "bg-gray-300"
-                }`}
-              />
+              <div className={`h-0.5 w-8 my-auto transition-all ${step < activeStep ? "bg-blue-400" : "bg-gray-300"}`} />
             )}
           </React.Fragment>
         ))}
@@ -606,10 +444,10 @@ const ReviewPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-6 py-12">
-      <div className="w-full max-w-lg bg-white shadow-xl rounded-lg border border-gray-200 transition-all duration-300 hover:shadow-2xl overflow-hidden">
-        {/* Header with shadow */}
-        <div className="bg-white p-6 border-b border-gray-100 shadow-sm">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-8">
+      <div className="w-full max-w-lg bg-white shadow-lg rounded-lg border border-gray-200">
+        {/* Header */}
+        <div className="bg-white p-6 border-b border-gray-100">
           <h2 className="text-2xl font-bold text-center text-blue-600">
             Share Your Experience
           </h2>
@@ -627,7 +465,7 @@ const ReviewPage = () => {
             {renderStep()}
 
             {/* Navigation buttons */}
-            <div className="flex justify-between pt-4 mt-8">
+            <div className="flex justify-between pt-4 mt-6">
               <Button
                 type="button"
                 variant="outlined"
@@ -646,13 +484,7 @@ const ReviewPage = () => {
                   variant="contained"
                   color="primary"
                   disabled={isSubmitting}
-                  endIcon={
-                    isSubmitting ? (
-                      <CircularProgress size={20} color="inherit" />
-                    ) : (
-                      <Send />
-                    )
-                  }
+                  endIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <Send />}
                   className="px-6 py-2 font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
                 >
                   {isSubmitting ? "Submitting..." : "Submit Review"}
@@ -674,7 +506,7 @@ const ReviewPage = () => {
         </div>
       </div>
 
-      {/* Toast Container for notifications */}
+      {/* Toast notifications */}
       <ToastContainer
         position="bottom-center"
         autoClose={5000}
