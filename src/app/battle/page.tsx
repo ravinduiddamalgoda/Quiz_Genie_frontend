@@ -4,7 +4,7 @@ import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Modal from '@mui/material/Modal';
-import { BackgroundBeamsWithCollision } from "@/app/component/background-beams-with-collision";
+import { BackgroundBeamsWithCollision } from "@/component/background-beams-with-collision";
 // import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
