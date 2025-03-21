@@ -8,7 +8,7 @@ interface Player {
 }
 
 const players: Player[] = [
-  { id: 1, name: "John Doe", score: 9850, rank: 1 },
+  { id: 1, name: "Iddamalgoda", score: 9850, rank: 1 },
   { id: 2, name: "Jane Smith", score: 8750, rank: 2 },
   { id: 3, name: "Alex Johnson", score: 7600, rank: 3 },
   { id: 4, name: "Sarah Williams", score: 6500, rank: 4 },
