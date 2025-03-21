@@ -2,8 +2,8 @@
 'use client';
 
 import React from 'react';
-import SideDrawer from '@/app/component/sideDrawer';
-import Questionnaire from '@/app/component/Questionnaire';
+import SideDrawer from '@/component/sideDrawer';
+import Questionnaire from '@/component/Questionnaire';
 
 
 
