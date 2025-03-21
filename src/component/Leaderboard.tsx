@@ -8,14 +8,14 @@ interface Player {
 }
 
 const players: Player[] = [
-  { id: 1, name: "John Doe", score: 9850, rank: 1 },
-  { id: 2, name: "Jane Smith", score: 8750, rank: 2 },
-  { id: 3, name: "Alex Johnson", score: 7600, rank: 3 },
-  { id: 4, name: "Sarah Williams", score: 6500, rank: 4 },
-  { id: 5, name: "Mike Brown", score: 5400, rank: 5 },
-  { id: 6, name: "Lisa Chen", score: 4300, rank: 6 },
-  { id: 7, name: "David Wilson", score: 3200, rank: 7 },
-  { id: 8, name: "Emily Davis", score: 2100, rank: 8 },
+  { id: 1, name: "Iddamalgoda", score: 9850, rank: 1 },
+  { id: 2, name: "Harshana", score: 8750, rank: 2 },
+  { id: 3, name: "Dilum", score: 7600, rank: 3 },
+  { id: 4, name: "Divyani", score: 6500, rank: 4 },
+  { id: 5, name: "Sahan", score: 5400, rank: 5 },
+  { id: 6, name: "Nimal", score: 4300, rank: 6 },
+  { id: 7, name: "Pawan", score: 3200, rank: 7 },
+  { id: 8, name: "Sunil", score: 2100, rank: 8 },
 ];
 
 const getMedalColor = (rank: number): string => {

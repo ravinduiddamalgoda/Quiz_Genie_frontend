@@ -8,15 +8,15 @@ import Questionnaire from '@/component/Questionnaire';
 
 
 const Page: React.FC = () => {
-  // You can customize the menu items if needed
+  // Define custom menu items for the
   const customMenuItems = [
     { label: 'View Leaderboard', href: '/battle/leaderboard' },
-    { label: 'Profile', href: '/profile' },
-    { label: 'Settings', href: '/settings' },
-    { label: 'Help', href: '/help' }
+    // { label: 'Profile', href: '/profile' },
+    // { label: 'Settings', href: '/settings' },
+    // { label: 'Help', href: '/help' }
   ];
 
-  //sample battle questions
+  //sample battle
   const sampleQuestions = [
     {
       id: 'q1',
@@ -66,7 +66,7 @@ const Page: React.FC = () => {
 
   const handleSubmit = (responses: Record<string, string[]>) => {
     console.log('Questionnaire responses:', responses);
-    // Here you can send the data to your API or perform other actions
+    //send the data to API or perform other actions
     alert('Thank you for completing the questionnaire!');
   };
 
