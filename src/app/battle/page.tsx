@@ -4,7 +4,7 @@ import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Modal from '@mui/material/Modal';
-import { BackgroundBeamsWithCollision } from "@/app/component/background-beams-with-collision";
+import { BackgroundBeamsWithCollision } from "@/component/background-beams-with-collision";
 // import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -53,7 +53,7 @@ const QuizBattle: React.FC = () => {
                 </button>
                 
                 <button 
-                  onClick={handleClose}
+                  onClick={() => router.push('/battle/battleInterface')}
                   className="w-full py-3 px-4 rounded-xl font-semibold text-purple-600 bg-white border border-purple-500 hover:bg-purple-50 transition-all duration-300"
                 >
                   Join Battle
