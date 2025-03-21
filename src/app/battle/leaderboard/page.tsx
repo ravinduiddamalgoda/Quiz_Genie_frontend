@@ -1,5 +1,5 @@
 import React from 'react';
-import Leaderboard from '@/app/component/Leaderboard';
+import Leaderboard from '@/component/Leaderboard';
 
 const LeaderboardPage: React.FC = () => {
   return (
