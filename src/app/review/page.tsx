@@ -124,8 +124,8 @@ const ReviewPage = () => {
       if (!formData.description.trim()) {
         newErrors.description = "Description is required";
         isValid = false;
-      } else if (formData.description.length < 20) {
-        newErrors.description = "Please provide at least 20 characters";
+      } else if (formData.description.length < 5) {
+        newErrors.description = "Please provide at least 5 characters";
         isValid = false;
       } else {
         newErrors.description = "";
@@ -175,7 +175,6 @@ const ReviewPage = () => {
       const toastId = toast.loading("Submitting your review...");
 
       try {
-        // Simulate API call
         await new Promise((resolve) => setTimeout(resolve, 1500));
         
         // Redirect to thank you page
@@ -300,8 +299,8 @@ const ReviewPage = () => {
                   <Typography variant="h6" color="primary" gutterBottom>
                     Share your experience
                   </Typography>
-                  <Typography variant="caption" color={charCount >= 20 ? "success" : "textSecondary"}>
-                    {charCount}/200 characters {charCount < 20 ? `(${20 - charCount} more required)` : ""}
+                  <Typography variant="caption" color={charCount >= 5 ? "success" : "textSecondary"}>
+                    {charCount}/200 characters {charCount < 5 ? `(${5 - charCount} more required)` : ""}
                   </Typography>
                 </div>
                 <TextField
