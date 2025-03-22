@@ -24,6 +24,7 @@ const SideDrawer: React.FC<SideDrawerProps> = ({
   ],
   title = 'Menu',
   exitButtonText = 'Exit'
+  
 }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [triggerZoneActive, setTriggerZoneActive] = useState<boolean>(false);
