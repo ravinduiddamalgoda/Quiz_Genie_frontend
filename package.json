@@ -16,6 +16,7 @@
     "@mui/styled-engine-sc": "^6.4.6",
     "@tabler/icons-react": "^3.31.0",
     "axios": "^1.8.4",
+
     "clsx": "^2.1.1",
     "canvas-confetti": "^1.9.3",
     "clsx": "^2.1.1",

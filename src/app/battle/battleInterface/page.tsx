@@ -5,13 +5,15 @@ import React from 'react';
 import SideDrawer from '@/component/sideDrawer';
 import Questionnaire from '@/component/Questionnaire';
 
+// import 
+
 
 
 const Page: React.FC = () => {
   // Define custom menu items for the
   const customMenuItems = [
     { label: 'View Leaderboard', href: '/battle/leaderboard' },
-    // { label: 'Profile', href: '/profile' },
+    { label: 'Edit Battle', href: '/battle/editbattle' },
     // { label: 'Settings', href: '/settings' },
     // { label: 'Help', href: '/help' }
   ];
