@@ -3,7 +3,7 @@
 import GenerateQuiz from '@/component/GeneratedQuiz';
 import React, { useState, useEffect } from 'react';
 import { File, X, Plus, Check } from 'lucide-react';
-
+import { useRouter } from 'next/navigation'
 interface ServerPdf {
   id: string;
   name: string;
@@ -11,6 +11,7 @@ interface ServerPdf {
 }
 
 const GenerateQuizPage: React.FC = () => {
+    const router = useRouter()
     const [prompt, setPrompt] = useState<string>('');
     const [selectedPdfs, setSelectedPdfs] = useState<ServerPdf[]>([]);
     const [availablePdfs, setAvailablePdfs] = useState<ServerPdf[]>([]);
@@ -73,16 +74,18 @@ const GenerateQuizPage: React.FC = () => {
         setTimeout(() => {
             setIsLoading(false);
             setShowPdfSelector(false);
-        }, 2000);
+        }, 200);
+
+        router.push('generateQuiz/playQuiz');
     };
 
     return (
         <div className="max-w-4xl mx-auto p-6 rounded-lg shadow-md">
             <h1 className="text-3xl font-bold mb-4">Generate Quiz</h1>
-            <p className="mb-6 text-blue-700">Welcome to the quiz generation page. Use the tools below to create your quiz.</p>
+            <p className="mb-6 ">Welcome to the quiz generation page. Use the tools below to create your quiz.</p>
             
             <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-blue-200">
-                <label className="block text-sm font-medium mb-2 text-blue-700">
+                <label className="block text-sm font-medium mb-2 ">
                     Enter your prompt:
                 </label>
                 <textarea 
