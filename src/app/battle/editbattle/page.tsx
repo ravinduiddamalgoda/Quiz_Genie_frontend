@@ -9,15 +9,12 @@ import {
   Paper,
   Container,
   IconButton,
-  AppBar,
-  Toolbar,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
   Grid,
-  LinearProgress,
   Avatar
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
