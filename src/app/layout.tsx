@@ -16,8 +16,10 @@ export default function RootLayout({
           { label: 'Home', href: '/' },
           { label: 'Battle', href: '/battle' },
           { label: 'Review', href: '/review' },
-          { label: 'About', href: '/about' },
-          { label: 'Contact', href: '/contact' }
+          { label: 'Generate Quiz', href: '/generateQuiz' },
+          { label: 'PDF Manage', href: '/pdfView' },
+          // { label: 'About', href: '/about' },
+          // { label: 'Contact', href: '/contact' }
         ]} />
         {children}
       </body>
