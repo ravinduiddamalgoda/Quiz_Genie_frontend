@@ -128,7 +128,7 @@ export default function HomePage() {
             <div className="md:w-1/2">
               <BackgroundGradient className="rounded-[22px] p-6 bg-white border border-gray-100">
                 <div className="h-[400px] w-full rounded-lg bg-gradient-to-br from-gray-50 to-teal-100 flex items-center justify-center shadow-inner">
-                  <span className="text-8xl">📊</span>
+                <img src="/images/wall.jpg" alt="wall image" />
                 </div>
               </BackgroundGradient>
             </div>
