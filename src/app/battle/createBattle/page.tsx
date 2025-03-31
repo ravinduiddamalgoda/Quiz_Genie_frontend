@@ -4,7 +4,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import Button from '@mui/material/Button';
 
 const CreateBattlePage: React.FC = () => {
-    const notify = () => toast('Wow so easy !');
+    const notify = () => toast('Battle Created !');
 
   const [battleName, setBattleName] = useState('');
   const [subjectName, setSubjectName] = useState('');
