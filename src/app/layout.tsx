@@ -18,7 +18,7 @@ export default function RootLayout({
           { label: 'Review', href: '/review' },
           { label: 'Generate Quiz', href: '/generateQuiz' },
           { label: 'PDF Manage', href: '/pdfView' },
-          // { label: 'About', href: '/about' },
+          { label: 'About', href: '/sample' },
           // { label: 'Contact', href: '/contact' }
         ]} />
         {children}
