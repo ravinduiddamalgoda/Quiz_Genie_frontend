@@ -1,115 +1,213 @@
 'use client';
-import { useState } from 'react';
-import { FaPlus, FaEye, FaEdit, FaTrashAlt, FaFilePdf } from 'react-icons/fa';
+import { useEffect, useState } from 'react';
+import { FaPlus, FaEye, FaEdit, FaTrashAlt, FaFilePdf, FaDownload } from 'react-icons/fa';
 import { useDropzone } from 'react-dropzone';
 import Swal from 'sweetalert2';
+import axios from 'axios';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+
+// Define TypeScript interfaces
+interface PDFDocument {
+  _id: string;
+  title: string;
+  subject: string;
+  description: string;
+  key: string;
+}
+
+interface FormDataInterface {
+  title: string;
+  subject: string;
+  description: string;
+}
+
+interface FormErrorsInterface {
+  title: string;
+  subject: string;
+  description: string;
+  file: string;
+}
 
 export default function PDFManager() {
-  const [showModal, setShowModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [pdfs, setPdfs] = useState([
-    {
-      title: 'Sample PDF 1',
-      subject: 'Math',
-      description: 'Sample description for Math PDF. This is a longer description to demonstrate truncation. More content here...',
-      link: '#',
-      dateAdded: new Date().toLocaleDateString(),
-    },
-    {
-      title: 'Sample PDF 2',
-      subject: 'Science',
-      description: 'Sample description for Science PDF. This is another description that will be truncated for preview.',
-      link: '#',
-      dateAdded: new Date().toLocaleDateString(),
-    },
-  ]);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [formData, setFormData] = useState({
+  const [title, setTitle] = useState<string>("");
+  const [subject, setSubject] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [allImage, setAllImage] = useState<PDFDocument[]>([]);  //fetch
+  
+  // Fetch the PDFs from the backend
+  useEffect(() => {
+    getPdf();
+  }, []);
+  
+  const getPdf = async (): Promise<void> => {
+    try {
+      const result = await axios.get("http://localhost:3600/get-files");
+      console.log("Fetched data:", result.data.data);
+      setAllImage(result.data.data);
+    } catch (error) {
+      console.error("Error fetching PDFs:", error);
+    }
+  };
+
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [showEditModal, setShowEditModal] = useState<boolean>(false);
+  
+  // Stores the selected PDF file.
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  //Holds user input
+  const [formData, setFormData] = useState<FormDataInterface>({
     title: '',
     subject: '',
     description: '',
   });
-  const [formErrors, setFormErrors] = useState({
+
+  // Stores validation errors.
+  const [formErrors, setFormErrors] = useState<FormErrorsInterface>({
     title: '',
     subject: '',
     description: '',
     file: '',
   });
-  const [editIndex, setEditIndex] = useState(null); // Index of PDF to edit
-  const [fullDescription, setFullDescription] = useState(null); // State for full description modal
+  
+  const [editIndex, setEditIndex] = useState<number | null>(null); // Index of PDF to edit
+  const [editId, setEditId] = useState<string | null>(null); // ID of PDF to edit
+  const [fullDescription, setFullDescription] = useState<PDFDocument | null>(null); // State for full description modal
 
-  const onDrop = (acceptedFiles : any) => {
+  const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB in bytes
+
+  const onDrop = (acceptedFiles: File[]): void => {
     if (acceptedFiles.length > 0) {
-      setSelectedFile(acceptedFiles[0]);
-      setFormErrors({ ...formErrors, file: '' }); // Clear file error when file is selected
+      const file = acceptedFiles[0];
+      
+      // Check file size
+      if (file.size > MAX_FILE_SIZE) {
+        setFormErrors({ ...formErrors, file: 'File size exceeds 20MB limit' });
+        return;
+      }
+      
+      setSelectedFile(file);
+      setFormErrors({ ...formErrors, file: '' }); // Clear file error when valid file is selected
     }
   };
 
   const { getRootProps, getInputProps } = useDropzone({
-    accept: 'application/pdf',
+    accept: {'application/pdf': ['.pdf']},
     onDrop,
   });
 
-  const handleInputChange = (e:any) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
     const { name, value } = e.target;
+    
+    // Update formData
     setFormData({ ...formData, [name]: value });
+  
+    // Also update individual states
+    if (name === "title") setTitle(value);
+    else if (name === "subject") setSubject(value);
+    else if (name === "description") setDescription(value);
   };
 
-  const validateForm = () => {
-    let errors = {};
+  const validateForm = (): FormErrorsInterface => {
+    let errors: FormErrorsInterface = {
+      title: '',
+      subject: '',
+      description: '',
+      file: ''
+    };
     if (!formData.title) errors.title = 'Title is required';
     if (!formData.subject) errors.subject = 'Subject is required';
     if (!formData.description) errors.description = 'Description is required';
-    if (!selectedFile) errors.file = 'PDF file is required';
+    
+    // File validation: required for add, optional for edit
+    if (!selectedFile && !editId) {
+      errors.file = 'PDF file is required';
+    } else if (selectedFile && selectedFile.size > MAX_FILE_SIZE) {
+      errors.file = 'File size exceeds 20MB limit';
+    }
+    
     return errors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
+  
     const errors = validateForm();
     setFormErrors(errors);
-
+  
     if (Object.keys(errors).length === 0) {
-      // Submit the form if no errors
-      const newPdf = {
-        title: formData.title,
-        subject: formData.subject,
-        description: formData.description,
-        link: URL.createObjectURL(selectedFile), 
-        dateAdded: new Date().toLocaleDateString(),
-      };
-      setPdfs([...pdfs, newPdf]);
-      setShowModal(false); // Close the modal after saving
-      setFormData({ title: '', subject: '', description: '' });
-      setSelectedFile(null); // Clear selected file
-
-      // Show success toast
-      Swal.fire({
-        icon: 'success',
-        title: 'PDF Added',
-        text: 'Your PDF has been added successfully!',
-      });
+      console.log("Preparing FormData for submission...");
+  
+      const data = new FormData();
+      data.append("title", formData.title);
+      data.append("subject", formData.subject);
+      data.append("description", formData.description);
+      if (selectedFile) {
+        data.append("selectedFile", selectedFile);
+      }
+      
+      try {
+        const response = await axios.post("http://localhost:3600/upload-files", data, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+      
+        if (response.status === 200) {
+          console.log("Upload Success ✅", response.data);
+          
+          // Reset form and close modal
+          setFormData({ title: '', subject: '', description: '' });
+          setSelectedFile(null);
+          setShowModal(false);
+          
+          // Refresh the PDF list
+          getPdf();
+        
+          Swal.fire({
+            icon: 'success',
+            title: 'PDF Uploaded!',
+            text: 'Your PDF was successfully submitted.',
+          });
+        }
+        else {
+          throw new Error("Unexpected response");
+        }
+      } catch (error) {
+        console.error("Upload Failed ❌", error);
+      
+        Swal.fire({
+          icon: 'error',
+          title: 'Upload Failed',
+          text: 'Please try again.',
+        });
+      }
+    } else {
+      console.warn("Validation Errors ⚠️", errors);
     }
   };
-
-  const handleView = (pdf) => {
-    // Open the PDF in a new tab
-    window.open(pdf.link, '_blank');
+  
+  const handleView = (pdfKey: string): void => {
+    window.open(`http://localhost:3600/get-files/${pdfKey}`, '_blank', 'noreferrer');
   };
 
-  const handleEdit = (index) => {
+  const handleEdit = (pdf: PDFDocument, index: number): void => {
     // Pre-fill the form with the current PDF data for editing
     setFormData({
-      title: pdfs[index].title,
-      subject: pdfs[index].subject,
-      description: pdfs[index].description,
+      title: pdf.title,
+      subject: pdf.subject,
+      description: pdf.description,
     });
+    setTitle(pdf.title);
+    setSubject(pdf.subject);
+    setDescription(pdf.description);
     setEditIndex(index); // Store the index of the PDF to edit
+    setEditId(pdf._id); // Store the ID of the PDF to edit
     setShowEditModal(true); // Show the Edit Modal
   };
 
-  const handleDelete = (index) => {
-    // Show confirmation alert before deleting
+  const handleDelete = (id: string): void => {
     Swal.fire({
       title: 'Are you sure?',
       text: 'This PDF will be deleted permanently!',
@@ -118,67 +216,195 @@ export default function PDFManager() {
       confirmButtonColor: '#d33',
       cancelButtonColor: '#3085d6',
       confirmButtonText: 'Yes, delete it!',
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        // Proceed with deletion if the user confirms
-        setPdfs(pdfs.filter((_, i) => i !== index));
-        Swal.fire({
-          icon: 'success',
-          title: 'Deleted!',
-          text: 'Your PDF has been deleted.',
-        });
+        try {
+          await axios.delete(`http://localhost:3600/delete-file/${id}`);
+          // After successful deletion, refresh the PDF list
+          getPdf();
+          Swal.fire({
+            icon: 'success',
+            title: 'Deleted!',
+            text: 'Your PDF has been deleted.',
+          });
+        } catch (error) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: 'Failed to delete the PDF. Please try again.',
+          });
+          console.error('Delete error:', error);
+        }
       }
     });
   };
-
-  const handleEditSubmit = (e) => {
+  
+  const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    const errors = validateForm();
-    setFormErrors(errors);
-
-    if (Object.keys(errors).length === 0) {
-      const updatedPdfs = [...pdfs];
-      updatedPdfs[editIndex] = {
-        ...updatedPdfs[editIndex],
-        title: formData.title,
-        subject: formData.subject,
-        description: formData.description,
-        link: URL.createObjectURL(selectedFile),
-      };
-      setPdfs(updatedPdfs);
-      setShowEditModal(false); // Close the edit modal after saving
-      setFormData({ title: '', subject: '', description: '' });
-      setSelectedFile(null); // Clear selected file
-
-      // Show success toast
+    
+    // Create a new errors object with file validation removed for edit mode
+    const baseErrors = {
+      title: formData.title ? '' : 'Title is required',
+      subject: formData.subject ? '' : 'Subject is required',
+      description: formData.description ? '' : 'Description is required',
+      file: '' // File is optional for edit
+    };
+    
+    setFormErrors(baseErrors);
+    
+    // Check if there are any validation errors
+    const hasErrors = Object.values(baseErrors).some(error => error !== '');
+    
+    if (!hasErrors && editId) {
+      try {
+        console.log("Preparing update for PDF with ID:", editId);
+        
+        // Create FormData for the update
+        const data = new FormData();
+        data.append("title", formData.title);
+        data.append("subject", formData.subject);
+        data.append("description", formData.description);
+        
+        if (selectedFile) {
+          data.append("selectedFile", selectedFile);
+        }
+        
+        // Send update request to backend
+        const response = await axios.put(`http://localhost:3600/update-file/${editId}`, data, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+        
+        console.log("Update response:", response);
+        
+        if (response.status === 200) {
+          // Refresh the PDF list
+          getPdf();
+          
+          // Reset state and close modal
+          setShowEditModal(false);
+          setFormData({ title: '', subject: '', description: '' });
+          setTitle('');
+          setSubject('');
+          setDescription('');
+          setSelectedFile(null);
+          setEditId(null);
+          setEditIndex(null);
+          
+          Swal.fire({
+            icon: 'success',
+            title: 'PDF Updated',
+            text: 'Your PDF has been updated successfully!',
+          });
+        }
+      } catch (error) {
+        console.error("Update Failed ❌", error);
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'Update Failed',
+          text: 'Please try again.',
+        });
+      }
+    } else if (!editId) {
+      console.error("Edit ID is missing");
       Swal.fire({
-        icon: 'success',
-        title: 'PDF Updated',
-        text: 'Your PDF has been updated successfully!',
+        icon: 'error',
+        title: 'Update Failed',
+        text: 'PDF reference is missing. Please try again.',
       });
     }
   };
 
-  const handleCloseEditModal = () => {
+  const handleCloseEditModal = (): void => {
     setShowEditModal(false);
     setFormData({ title: '', subject: '', description: '' }); // Clear form data when closing the modal
+    setTitle('');
+    setSubject('');
+    setDescription('');
     setSelectedFile(null); // Clear selected file
+    setEditId(null);
+    setEditIndex(null);
   };
 
-  const handleViewFullDescription = (pdf) => {
+  const handleViewFullDescription = (pdf: PDFDocument): void => {
     setFullDescription(pdf);
   };
 
-  const handleCloseFullDescription = () => {
+  const handleCloseFullDescription = (): void => {
     setFullDescription(null);
   };
 
-  const truncateDescription = (description) => {
+  const truncateDescription = (description: string): string => {
     const words = description.split(' ');
     if (words.length > 20) {
       return words.slice(0, 20).join(' ') + '...';
     }
     return description;
+  };
+
+  const getDateFromObjectId = (objectId: string): string => {
+    return new Date(parseInt(objectId.substring(0, 8), 16) * 1000).toLocaleDateString();
+  };
+
+  // Function to generate and download a PDF with table data
+  const handleDownloadTableData = (): void => {
+    // Create a new PDF document
+    const doc = new jsPDF();
+    
+    // Set document properties
+    doc.setProperties({
+      title: 'PDF Manager - Document List',
+      author: 'PDF Manager',
+      creator: 'PDF Manager Application'
+    });
+    
+    // Add title to the PDF
+    doc.setFontSize(18);
+    doc.setTextColor(30, 63, 102); // #1E3F66
+    doc.text('PDF Manager - Document List', 14, 20);
+    doc.setFontSize(12);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 26);
+    
+    // Create table data
+    const tableColumn = ["Title", "Subject", "Description", "Date Added"];
+    
+    // Map the data from allImage state to table rows
+    const tableRows = allImage.map((pdf) => [
+      pdf.title,
+      pdf.subject,
+      // Truncate description for better fit in PDF
+      pdf.description.length > 60 ? 
+        pdf.description.substring(0, 60) + '...' : 
+        pdf.description,
+      getDateFromObjectId(pdf._id)
+    ]);
+    
+    // Generate the table
+    doc.autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 35,
+      theme: 'striped',
+      styles: { fontSize: 10, cellPadding: 3 },
+      headStyles: { fillColor: [30, 63, 102], textColor: [255, 255, 255] },
+      alternateRowStyles: { fillColor: [240, 240, 240] },
+      margin: { top: 35 }
+    });
+    
+    // Save the PDF
+    doc.save('pdf-manager-documents.pdf');
+    
+    // Show success notification
+    Swal.fire({
+      icon: 'success',
+      title: 'PDF Downloaded',
+      text: 'Your document list has been downloaded as a PDF.',
+      timer: 2000,
+      showConfirmButton: false
+    });
   };
 
   return (
@@ -207,7 +433,7 @@ export default function PDFManager() {
               </tr>
             </thead>
             <tbody>
-              {pdfs.length === 0 ? (
+              {allImage.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-6 text-center text-gray-500">
                     <div className="flex flex-col items-center">
@@ -218,8 +444,8 @@ export default function PDFManager() {
                   </td>
                 </tr>
               ) : (
-                pdfs.map((pdf, index) => (
-                  <tr key={index} className="border-t">
+                allImage.map((pdf: PDFDocument, index: number) => (
+                  <tr key={pdf._id} className="border-t">
                     <td className="p-3 text-black">{pdf.title}</td>
                     <td className="p-3 text-black">{pdf.subject}</td>
                     <td className="p-3 text-black">
@@ -231,18 +457,18 @@ export default function PDFManager() {
                         See more
                       </button>
                     </td>
-                    <td className="p-3 text-black">{pdf.dateAdded}</td>
+                    <td className="p-3 text-black">{getDateFromObjectId(pdf._id)}</td>
                     <td className="p-3 text-black flex gap-2 items-center">
                       <FaEye
-                        onClick={() => handleView(pdf)}
+                        onClick={() => handleView(pdf.key)}
                         className="text-black cursor-pointer hover:text-gray-700"
                       />
                       <FaEdit
-                        onClick={() => handleEdit(index)}
+                        onClick={() => handleEdit(pdf, index)}
                         className="text-black cursor-pointer hover:text-gray-700"
                       />
                       <FaTrashAlt
-                        onClick={() => handleDelete(index)}
+                        onClick={() => handleDelete(pdf._id)}
                         className="text-red-600 cursor-pointer hover:text-red-800"
                       />
                     </td>
@@ -252,6 +478,18 @@ export default function PDFManager() {
             </tbody>
           </table>
         </div>
+
+        {/* Download button - Added at the bottom of the table */}
+        {allImage.length > 0 && (
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={handleDownloadTableData}
+              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md shadow-md hover:bg-green-700"
+            >
+              <FaDownload /> Download Table as PDF
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Add Modal */}
@@ -303,7 +541,7 @@ export default function PDFManager() {
                 >
                   <input {...getInputProps()} />
                   {selectedFile ? (
-                    <p className="text-gray-700">{selectedFile.name}</p>
+                    <p className="text-gray-700">{selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)</p>
                   ) : (
                     <div>
                       <FaFilePdf className="mx-auto text-gray-500 text-3xl" />
@@ -311,6 +549,7 @@ export default function PDFManager() {
                     </div>
                   )}
                 </div>
+                <p className="text-gray-500 text-xs mt-1">Maximum file size: 20MB</p>
                 {formErrors.file && <p className="text-red-500 text-xs mt-1">{formErrors.file}</p>}
               </div>
 
@@ -376,14 +615,14 @@ export default function PDFManager() {
 
               {/* PDF Upload Section */}
               <div className="mb-2">
-                <label className="block text-sm font-medium text-gray-700">Upload PDF</label>
+                <label className="block text-sm font-medium text-gray-700">Upload PDF (Optional)</label>
                 <div
                   {...getRootProps()}
                   className="w-full p-4 border-dashed border-2 border-gray-300 rounded-md text-center cursor-pointer bg-gray-100 hover:bg-gray-200"
                 >
                   <input {...getInputProps()} />
                   {selectedFile ? (
-                    <p className="text-gray-700">{selectedFile.name}</p>
+                    <p className="text-gray-700">{selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)</p>
                   ) : (
                     <div>
                       <FaFilePdf className="mx-auto text-gray-500 text-3xl" />
@@ -391,6 +630,7 @@ export default function PDFManager() {
                     </div>
                   )}
                 </div>
+                <p className="text-gray-500 text-xs mt-1">Maximum file size: 20MB</p>
                 {formErrors.file && <p className="text-red-500 text-xs mt-1">{formErrors.file}</p>}
               </div>
 
@@ -416,10 +656,10 @@ export default function PDFManager() {
 
       {/* Full Description Modal */}
       {fullDescription && (
-        <div className="fixed inset-0 flex items-center justify-center bg-opacity-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-opacity-50 backdrop-blur-md">
           <div className="bg-white p-6 rounded-lg shadow-lg w-96">
             <h2 className="text-2xl font-bold text-[#1E3F66]">{fullDescription.title}</h2>
-            <p className="mt-4">{fullDescription.description}</p>
+            <p className="mt-4 text-black">{fullDescription.description}</p>
             <div className="flex justify-end mt-4">
               <button
                 onClick={handleCloseFullDescription}
