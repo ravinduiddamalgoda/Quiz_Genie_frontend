@@ -6,7 +6,8 @@ import Swal from 'sweetalert2';
 import axios from 'axios';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
-
+// import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 // Define TypeScript interfaces
 interface PDFDocument {
   _id: string;
@@ -42,7 +43,7 @@ export default function PDFManager() {
   
   const getPdf = async (): Promise<void> => {
     try {
-      const result = await axios.get("http://localhost:3600/get-files");
+      const result = await axios.get("http://localhost:3600/api/files/get-files");
       console.log("Fetched data:", result.data.data);
       setAllImage(result.data.data);
     } catch (error) {
@@ -148,7 +149,7 @@ export default function PDFManager() {
       }
       
       try {
-        const response = await axios.post("http://localhost:3600/upload-files", data, {
+        const response = await axios.post("http://localhost:3600/api/fils/upload-files", data, {
           headers: {
             "Content-Type": "multipart/form-data",
           },
@@ -189,7 +190,7 @@ export default function PDFManager() {
   };
   
   const handleView = (pdfKey: string): void => {
-    window.open(`http://localhost:3600/get-files/${pdfKey}`, '_blank', 'noreferrer');
+    window.open(`http://localhost:3600/api/files/get-files/${pdfKey}`, '_blank', 'noreferrer');
   };
 
   const handleEdit = (pdf: PDFDocument, index: number): void => {
@@ -270,7 +271,7 @@ export default function PDFManager() {
         }
         
         // Send update request to backend
-        const response = await axios.put(`http://localhost:3600/update-file/${editId}`, data, {
+        const response = await axios.put(`http://localhost:3600/api/files/update-file/${editId}`, data, {
           headers: {
             "Content-Type": "multipart/form-data",
           },
@@ -381,6 +382,7 @@ export default function PDFManager() {
         pdf.description,
       getDateFromObjectId(pdf._id)
     ]);
+    
     
     // Generate the table
     doc.autoTable({
