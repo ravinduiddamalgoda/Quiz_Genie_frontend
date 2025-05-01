@@ -70,7 +70,7 @@ const QuizBattle: React.FC = () => {
                 </button>
                 
                 <button 
-                  onClick={() => router.push('/battle/battleInterface')}
+                  onClick={() => router.push('/battle/viewAllBattle')}
                   className="w-full py-3 px-4 rounded-xl font-semibold text-purple-600 bg-white border border-purple-500 hover:bg-purple-50 transition-all duration-300"
                 >
                   Join Battle
