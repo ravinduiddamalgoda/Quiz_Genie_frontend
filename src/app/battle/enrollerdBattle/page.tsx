@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuthStore } from '@/store/useStore';  // Importing Zustand store
 import SideDrawer from '@/component/sideDrawer';
+import { useRouter } from 'next/navigation'; // Changed from next/router to next/navigation
 
 interface Battle {
   _id: string;
@@ -18,13 +19,11 @@ const DisplayBattlesPage: React.FC = () => {
   const [battles, setBattles] = useState<Battle[]>([]);
   const [selectedBattle, setSelectedBattle] = useState<Battle | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const router = useRouter();  // Using App Router from next/navigation
 
   const customMenuItems = [
     { label: 'My Battle', href: '/battle/enrollerdBattle' },
-    { label: 'View Leaderboard', href: '/battle/leaderboard' },
     { label: 'join Battle', href: '/battle/viewAllBattle' },
-    // { label: 'Settings', href: '/settings' },
-    // { label: 'Help', href: '/help' }
   ];
 
   // Accessing user ID from Zustand store
@@ -48,7 +47,8 @@ const DisplayBattlesPage: React.FC = () => {
   // Handle battle selection
   const handleSelectBattle = (battle: Battle) => {
     setSelectedBattle(battle);
-    setIsModalOpen(true);
+    // Navigate to the battle interface with the selected battle ID
+    router.push(`/battle/${battle._id}`);
   };
 
   // Handle joining the battle
@@ -69,9 +69,20 @@ const DisplayBattlesPage: React.FC = () => {
     }
   };
 
+  // Format date safely for both client and server
+  const formatDate = (dateString: string) => {
+    try {
+      // Use a consistent date format that works on both server and client
+      const date = new Date(dateString);
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    } catch (error) {
+      return 'Invalid date';
+    }
+  };
+
   return (
     <div className="p-4">
-        <SideDrawer 
+      <SideDrawer 
         menuItems={customMenuItems} 
         title="Battle Menu" 
         exitButtonText="leave Battle"
@@ -90,7 +101,10 @@ const DisplayBattlesPage: React.FC = () => {
               <h2 className="text-xl font-semibold">{battle.name}</h2>
               <p className="text-gray-600">{battle.subject}</p>
               <p className="text-gray-500">{battle.type}</p>
-              <p className="text-sm text-gray-400">Created At: {new Date(battle.createdAt).toLocaleDateString()}</p>
+              <p className="text-gray-600">Participants: {battle.participants.length}</p>
+              <p className="text-sm text-gray-400">Battle ID: {battle._id}</p>
+              {/* Using the safe format function for dates */}
+              <p className="text-sm text-gray-400">Created At: {formatDate(battle.createdAt)}</p>
             </div>
           ))}
         </div>

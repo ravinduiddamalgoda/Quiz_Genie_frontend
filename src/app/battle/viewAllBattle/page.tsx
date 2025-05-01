@@ -24,7 +24,7 @@ const DisplayBattlesPage: React.FC = () => {
 
     const customMenuItems = [
         { label: 'My Battle', href: '/battle/enrollerdBattle' },
-        { label: 'View Leaderboard', href: '/battle/leaderboard' },
+        // { label: 'View Leaderboard', href: '/battle/leaderboard' },
         { label: 'join Battle', href: '/battle/viewAllBattle' },
         // { label: 'Settings', href: '/settings' },
         // { label: 'Help', href: '/help' }
@@ -40,7 +40,7 @@ const DisplayBattlesPage: React.FC = () => {
   useEffect(() => {
     const fetchBattles = async () => {
       try {
-        const response = await axios.get('http://localhost:3600/api/battle/allBattles');
+        const response = await axios.get('http://localhost:3600/api/battle/display-all');
         setBattles(response.data);
       } catch (error) {
         console.error("Error fetching battles", error);
@@ -80,7 +80,7 @@ const DisplayBattlesPage: React.FC = () => {
         title="Battle Menu" 
         exitButtonText="leave Battle"
       />
-      <h1 className="text-3xl font-bold mb-6">All Battles</h1>
+      <h1 className="text-3xl font-bold mb-6">Join Battle</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {battles.map((battle) => (
           <div
