@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/useStore';  // Importing Zustand store
 import SideDrawer from '@/component/sideDrawer';
 import { useRouter } from 'next/navigation'; // Changed from next/router to next/navigation
 
+
 interface Battle {
   _id: string;
   name: string;
@@ -20,10 +21,10 @@ const DisplayBattlesPage: React.FC = () => {
   const [selectedBattle, setSelectedBattle] = useState<Battle | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const router = useRouter();  // Using App Router from next/navigation
-
   const customMenuItems = [
     { label: 'My Battle', href: '/battle/enrollerdBattle' },
     { label: 'join Battle', href: '/battle/viewAllBattle' },
+
   ];
 
   // Accessing user ID from Zustand store
@@ -49,6 +50,7 @@ const DisplayBattlesPage: React.FC = () => {
     setSelectedBattle(battle);
     // Navigate to the battle interface with the selected battle ID
     router.push(`/battle/${battle._id}`);
+
   };
 
   // Handle joining the battle
@@ -138,3 +140,4 @@ const DisplayBattlesPage: React.FC = () => {
 };
 
 export default DisplayBattlesPage;
+
