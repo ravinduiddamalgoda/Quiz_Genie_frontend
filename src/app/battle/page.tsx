@@ -1,5 +1,5 @@
 'use client'// pages/quizBattle.tsx
-import React from 'react';
+import React, { useEffect  } from 'react';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -8,11 +8,28 @@ import { BackgroundBeamsWithCollision } from "@/component/background-beams-with-
 // import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
+import { useAuthStore } from '@/store/useStore';
+import { toast } from 'react-toastify';
+
 const QuizBattle: React.FC = () => {
   const [open, setOpen] = React.useState(false);
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
   const router = useRouter()
+  const { user, token } = useAuthStore();
+
+  useEffect(() => {
+    if (!user || !token) {
+
+      // toast.info('You need to log in');
+      alert('You need to log in');
+      router.push('/user/login');
+    }
+  }, [user, token, router]);
+
+  // if (!user) {
+  //   return <div>Loading...</div>;
+  // }
 
   return (
     <div>
