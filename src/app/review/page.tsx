@@ -1,4 +1,5 @@
 "use client";
+import axios from "axios"; // Make sure this is at the top
 
 import React, { useState, useEffect } from "react";
 import {
@@ -165,29 +166,49 @@ const ReviewPage = () => {
     }, 300);
   };
 
-  // Form submission handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
-
+  
     if (validateStep(activeStep)) {
       setIsSubmitting(true);
       const toastId = toast.loading("Submitting your review...");
-
+  
       try {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        
-        // Redirect to thank you page
-        router.push('review/thankYouReview');
-        
-      } catch (error) {
+        const payload = {
+          rating,
+          title: formData.title,
+          description: formData.description,
+          wouldRecommend: formData.wouldRecommend,
+          email: formData.email,
+        };
+  
+        // Send data to backend
+        const response = await axios.post("http://localhost:3600/api/reviews", payload);
+  
+        // Optional: log or handle response
+        console.log("Review submitted:", response.data);
+  
         toast.update(toastId, {
-          render: "There was a problem submitting your review. Please try again.",
+          render: "Review submitted successfully!",
+          type: "success",
+          isLoading: false,
+          autoClose: 3000,
+          closeButton: true,
+        });
+  
+        // Redirect after successful submission
+        router.push("review/thankYouReview");
+      } catch (error: any) {
+        toast.update(toastId, {
+          render: error?.response?.data?.message || "Submission failed. Please try again.",
           type: "error",
           isLoading: false,
           autoClose: 5000,
           closeButton: true,
         });
+        console.error("Submission error:", error);
+      } finally {
         setIsSubmitting(false);
       }
     } else {
@@ -196,6 +217,46 @@ const ReviewPage = () => {
       });
     }
   };
+  // // Form submission handler
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setSubmitted(true);
+
+  //   if (validateStep(activeStep)) {
+  //     setIsSubmitting(true);
+  //     const toastId = toast.loading("Submitting your review...");
+
+  //     try {
+  //       await new Promise((resolve) => setTimeout(resolve, 1500));
+        
+  //       // Store review data in localStorage before redirecting
+  //       const reviewData = {
+  //         ...formData,
+  //         rating,
+  //         date: new Date().toLocaleDateString(),
+  //       };
+        
+  //       localStorage.setItem('reviewData', JSON.stringify(reviewData));
+        
+  //       // Redirect to thank you page
+  //       router.push('review/thankYouReview');
+        
+  //     } catch (error) {
+  //       toast.update(toastId, {
+  //         render: "There was a problem submitting your review. Please try again.",
+  //         type: "error",
+  //         isLoading: false,
+  //         autoClose: 5000,
+  //         closeButton: true,
+  //       });
+  //       setIsSubmitting(false);
+  //     }
+  //   } else {
+  //     toast.error("Please correct the errors before submitting.", {
+  //       position: "bottom-center",
+  //     });
+  //   }
+  // };
 
   // Utility functions
   const getStarColor = (index: number): string => {

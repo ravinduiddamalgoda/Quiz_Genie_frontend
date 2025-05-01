@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/router";
 import { 
   Button, 
   Typography, 
@@ -54,7 +55,7 @@ const ThankYouReview = () => {
     doc.setFontSize(12);
     doc.text("Thank you for submitting your review!", 105, 40, { align: "center" });
     doc.text("Your feedback is valuable to us and helps improve our services.", 105, 50, { align: "center" });
-    doc.text("Review ID: " + reviewId, 105, 70, { align: "center" });
+    // doc.text("Review ID: " + reviewId, 105, 70, { align: "center" });
     doc.text("Date: " + new Date().toLocaleDateString(), 105, 80, { align: "center" });
     
     // Add footer
@@ -263,12 +264,12 @@ const ThankYouReview = () => {
                 mt: 1,
                 gap: 1
               }}>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: "#263238" }}>
+                {/* <Typography variant="body2" sx={{ fontWeight: 600, color: "#263238" }}>
                   Review ID:
-                </Typography>
-                <Typography variant="body2" sx={{ fontFamily: "monospace", color: "#1976D2" }}>
+                </Typography> */}
+                {/* <Typography variant="body2" sx={{ fontFamily: "monospace", color: "#1976D2" }}>
                   {reviewId}
-                </Typography>
+                </Typography> */}
               </Box>
             </Box>
           </Zoom>
@@ -308,7 +309,7 @@ const ThankYouReview = () => {
                 </Button>
               </Tooltip>
               
-              <Link href="/reviews" passHref>
+              
                 <Button
                   variant="outlined"
                   startIcon={<Eye />}
@@ -327,10 +328,10 @@ const ThankYouReview = () => {
                       transform: "translateY(-2px)"
                     }
                   }}
+                onClick={() => window.location.href = "/review/edit_deletePage"}
                 >
                   View All Reviews
                 </Button>
-              </Link>
             </Box>
           </Grow>
           
