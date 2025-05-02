@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/router";
 import { 
   Button, 
   Typography, 
@@ -26,6 +25,7 @@ import {
 import Link from "next/link";
 import { jsPDF } from "jspdf";
 import { Eye } from "lucide-react";
+
 
 const ThankYouReview = () => {
   // Animation state for elements
@@ -237,7 +237,7 @@ const ThankYouReview = () => {
                 boxShadow: "inset 0 2px 8px rgba(25, 118, 210, 0.08)"
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {/* <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <Timeline sx={{ color: "#1976D2" }} />
                 <Typography sx={{ color: "#546E7A", fontWeight: 600 }}>
                   Review Status:
@@ -245,9 +245,9 @@ const ThankYouReview = () => {
                 <Typography sx={{ color: "#1976D2", fontWeight: 600 }}>
                   Pending Moderation
                 </Typography>
-              </Box>
+              </Box> */}
               
-              <Typography
+              {/* <Typography
                 variant="body2"
                 sx={{
                   color: "#546E7A",
@@ -255,7 +255,7 @@ const ThankYouReview = () => {
                 }}
               >
                 Your review will be published shortly after our team reviews it. You'll receive a notification once it's live.
-              </Typography>
+              </Typography> */}
               
               <Box sx={{ 
                 display: "flex", 

@@ -91,22 +91,46 @@ const ReviewViewPage = () => {
   };
 
   // Handle save edit
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (currentReview) {
-      const updatedReviews = reviews.map((review) =>
-        review._id === currentReview._id ? { ...review, ...editedReview } : review
-      );
-      setReviews(updatedReviews);
-      setOpenEditDialog(false);
-      setSuccessMessage("Review updated successfully!");
-
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setSuccessMessage("");
-      }, 3000);
+      try {
+        console.log("Updating review:", currentReview); // Debugging line
+        const response = await axios.put(
+          `http://localhost:3600/api/reviews/${currentReview._id}`,
+          {
+            title: editedReview.title,
+            rating: editedReview.rating,
+            description: editedReview.content,
+          }
+        );
+  
+        if (response.data.message === "Updated successfully") {
+          const updatedReviews = reviews.map((review) =>
+            review._id === currentReview._id
+              ? {
+                  ...review,
+                  title: editedReview.title,
+                  rating: editedReview.rating,
+                  description: editedReview.content,
+                }
+              : review
+          );
+          setReviews(updatedReviews);
+          setSuccessMessage("Review updated successfully!");
+        } else {
+          console.error("Unexpected response:", response.data);
+        }
+      } catch (error) {
+        console.error("Error updating review:", error);
+      } finally {
+        setOpenEditDialog(false);
+        setTimeout(() => {
+          setSuccessMessage("");
+        }, 3000);
+      }
     }
   };
-
+  
   // Handle opening delete dialog
   const handleDeleteClick = (review: Review) => {
     setReviewToDelete(review);
