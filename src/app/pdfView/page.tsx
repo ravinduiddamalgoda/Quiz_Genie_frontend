@@ -8,6 +8,7 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 // import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useAuthStore } from '@/store/useStore';
 // Define TypeScript interfaces
 interface PDFDocument {
   _id: string;
@@ -36,6 +37,7 @@ export default function PDFManager() {
   const [description, setDescription] = useState<string>("");
   const [allImage, setAllImage] = useState<PDFDocument[]>([]);  //fetch
   
+  const token = useAuthStore((state) => state.token);
   // Fetch the PDFs from the backend
   useEffect(() => {
     getPdf();
@@ -43,7 +45,11 @@ export default function PDFManager() {
   
   const getPdf = async (): Promise<void> => {
     try {
-      const result = await axios.get("http://localhost:3600/api/files/get-files");
+      const result = await axios.get("http://localhost:3600/api/files/get-files", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       console.log("Fetched data:", result.data.data);
       setAllImage(result.data.data);
     } catch (error) {
