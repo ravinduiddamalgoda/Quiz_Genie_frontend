@@ -26,6 +26,7 @@ import Link from "next/link";
 import { jsPDF } from "jspdf";
 import { Eye } from "lucide-react";
 
+
 const ThankYouReview = () => {
   // Animation state for elements
   const [showElements, setShowElements] = useState(false);
@@ -54,7 +55,7 @@ const ThankYouReview = () => {
     doc.setFontSize(12);
     doc.text("Thank you for submitting your review!", 105, 40, { align: "center" });
     doc.text("Your feedback is valuable to us and helps improve our services.", 105, 50, { align: "center" });
-    doc.text("Review ID: " + reviewId, 105, 70, { align: "center" });
+    // doc.text("Review ID: " + reviewId, 105, 70, { align: "center" });
     doc.text("Date: " + new Date().toLocaleDateString(), 105, 80, { align: "center" });
     
     // Add footer
@@ -236,7 +237,7 @@ const ThankYouReview = () => {
                 boxShadow: "inset 0 2px 8px rgba(25, 118, 210, 0.08)"
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {/* <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <Timeline sx={{ color: "#1976D2" }} />
                 <Typography sx={{ color: "#546E7A", fontWeight: 600 }}>
                   Review Status:
@@ -244,9 +245,9 @@ const ThankYouReview = () => {
                 <Typography sx={{ color: "#1976D2", fontWeight: 600 }}>
                   Pending Moderation
                 </Typography>
-              </Box>
+              </Box> */}
               
-              <Typography
+              {/* <Typography
                 variant="body2"
                 sx={{
                   color: "#546E7A",
@@ -254,7 +255,7 @@ const ThankYouReview = () => {
                 }}
               >
                 Your review will be published shortly after our team reviews it. You'll receive a notification once it's live.
-              </Typography>
+              </Typography> */}
               
               <Box sx={{ 
                 display: "flex", 
@@ -263,12 +264,12 @@ const ThankYouReview = () => {
                 mt: 1,
                 gap: 1
               }}>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: "#263238" }}>
+                {/* <Typography variant="body2" sx={{ fontWeight: 600, color: "#263238" }}>
                   Review ID:
-                </Typography>
-                <Typography variant="body2" sx={{ fontFamily: "monospace", color: "#1976D2" }}>
+                </Typography> */}
+                {/* <Typography variant="body2" sx={{ fontFamily: "monospace", color: "#1976D2" }}>
                   {reviewId}
-                </Typography>
+                </Typography> */}
               </Box>
             </Box>
           </Zoom>
@@ -308,7 +309,7 @@ const ThankYouReview = () => {
                 </Button>
               </Tooltip>
               
-              <Link href="/reviews" passHref>
+              
                 <Button
                   variant="outlined"
                   startIcon={<Eye />}
@@ -327,10 +328,10 @@ const ThankYouReview = () => {
                       transform: "translateY(-2px)"
                     }
                   }}
+                onClick={() => window.location.href = "/review/edit_deletePage"}
                 >
                   View All Reviews
                 </Button>
-              </Link>
             </Box>
           </Grow>
           
