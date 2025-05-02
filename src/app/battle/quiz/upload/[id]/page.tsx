@@ -95,7 +95,7 @@ const GenerateQuizPage: React.FC = () => {
           
           const payload = {
             prompt: prompt,
-            pdfIds: pdfIds
+            pdfIds: [pdfIds]
           };
           
           const response = await fetch('http://localhost:3600/api/quiz-generator/generate', {
@@ -118,13 +118,14 @@ const GenerateQuizPage: React.FC = () => {
             // Store the quiz in Zustand
             // useQuizStore.getState().setCurrentQuiz(data.data.quiz);
             console.log('Quiz generated successfully:', data.data.quiz);
-            const quizId = data.data.quiz._id;
+            const quizId = data.data.quiz.id;
+            console.log('Quiz ID:', quizId);
             const playLoadupdateBattle = {
                 quizId: quizId
             };
             // Navigate to the quiz player with the generated quiz ID
             const addQuizToBattle = await fetch(`http://localhost:3600/api/battle/update-quiz/${battleId}`, {
-                method: 'POST',
+                method: 'PUT',
                 headers: {
                   'Authorization': `Bearer ${token}`,
                   'Content-Type': 'application/json'
