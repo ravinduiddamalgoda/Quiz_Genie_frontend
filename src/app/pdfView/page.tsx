@@ -110,26 +110,28 @@ export default function PDFManager() {
     else if (name === "description") setDescription(value);
   };
 
-  const validateForm = (): FormErrorsInterface => {
-    let errors: FormErrorsInterface = {
-      title: '',
-      subject: '',
-      description: '',
-      file: ''
-    };
-    if (!formData.title) errors.title = 'Title is required';
-    if (!formData.subject) errors.subject = 'Subject is required';
-    if (!formData.description) errors.description = 'Description is required';
-    
-    // File validation: required for add, optional for edit
-    if (!selectedFile && !editId) {
-      errors.file = 'PDF file is required';
-    } else if (selectedFile && selectedFile.size > MAX_FILE_SIZE) {
-      errors.file = 'File size exceeds 20MB limit';
+  const validateForm = () => {
+    const errors: { [key: string]: string } = {};
+  
+    if (!formData.title.trim()) {
+      errors.title = "Title is required";
     }
-    
+  
+    if (!formData.subject.trim()) {
+      errors.subject = "Subject is required";
+    }
+  
+    if (!formData.description.trim()) {
+      errors.description = "Description is required";
+    }
+  
+    if (!selectedFile) {
+      errors.file = "File is required";
+    }
+  
     return errors;
   };
+  
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
@@ -149,7 +151,7 @@ export default function PDFManager() {
       }
       
       try {
-        const response = await axios.post("http://localhost:3600/api/fils/upload-files", data, {
+        const response = await axios.post("http://localhost:3600/api/files/upload-file", data, {
           headers: {
             "Content-Type": "multipart/form-data",
           },
