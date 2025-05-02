@@ -1,172 +1,262 @@
-// components/Questionnaire.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Download, Share2, Edit, Copy, Check } from 'lucide-react';
+import { useAuthStore } from '@/store/useStore';
 
-// Define types for our questionnaire data
-interface Answer {
+interface QuizOption {
   id: string;
   text: string;
 }
 
 interface Question {
-  id: string;
+  id: number;
   text: string;
-  answers: Answer[];
+  options: QuizOption[];
+  correctAnswer: string;
+  difficulty: string;
+  language: string;
 }
 
-interface QuestionnaireProps {
+interface Quiz {
+  id: string;
+  title: string;
   questions: Question[];
-  onSubmit?: (responses: Record<string, string[]>) => void;
+  totalQuestions: number;
 }
 
-const GenerateQuiz: React.FC<QuestionnaireProps> = ({
-  questions,
-  onSubmit
-}) => {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [responses, setResponses] = useState<Record<string, string[]>>({});
-  const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
+interface GeneratedQuizProps {
+  quizId: string;
+}
 
-  // Handle checkbox changes
-  const handleAnswerChange = (questionId: string, answerId: string) => {
-    setResponses(prev => {
-      const questionResponses = prev[questionId] || [];
-      if (questionResponses.includes(answerId)) {
-        return {
-          ...prev,
-          [questionId]: questionResponses.filter(id => id !== answerId)
-        };
-      } else {
-        return {
-          ...prev,
-          [questionId]: [...questionResponses, answerId]
-        };
+const GeneratedQuiz: React.FC<GeneratedQuizProps> = ({ quizId }) => {
+  const [quiz, setQuiz] = useState<Quiz | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const router = useRouter();
+  const token = useAuthStore((state) => state.token);
+
+  useEffect(() => {
+    const fetchQuiz = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`http://localhost:3600/api/quizzes/${quizId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch quiz');
+        }
+
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          setQuiz(data.data.quiz);
+        } else {
+          throw new Error(data.message || 'Failed to load quiz');
+        }
+      } catch (error) {
+        console.error('Error fetching quiz:', error);
+        setError('Failed to load quiz. Please try again.');
+      } finally {
+        setIsLoading(false);
       }
-    });
+    };
+
+    if (token && quizId) {
+      fetchQuiz();
+    }
+  }, [quizId, token]);
+
+  const handlePlay = () => {
+    router.push(`/generateQuiz/playQuiz?id=${quizId}`);
   };
 
-  // Handle flag toggle
-  const toggleFlag = (questionId: string) => {
-    setFlaggedQuestions(prev => {
-      const newFlags = new Set(prev);
-      if (newFlags.has(questionId)) {
-        newFlags.delete(questionId);
-      } else {
-        newFlags.add(questionId);
-      }
-      return newFlags;
-    });
+  const handleEdit = () => {
+    router.push(`/generateQuiz/edit?id=${quizId}`);
   };
 
-  // Navigation functions
-  const goToNext = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
+  const handleDownload = async () => {
+    if (!quiz) return;
+
+    try {
+      // Create a formatted text version of the quiz
+      let content = `${quiz.title}\n\n`;
+      
+      quiz.questions.forEach((q, index) => {
+        content += `Question ${index + 1}: ${q.text}\n`;
+        q.options.forEach(opt => {
+          content += `${opt.id}. ${opt.text}\n`;
+        });
+        content += `Correct Answer: ${q.correctAnswer}\n\n`;
+      });
+      
+      // Create a download link
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${quiz.title.replace(/\s+/g, '_')}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+    } catch (error) {
+      console.error('Error downloading quiz:', error);
+      alert('Failed to download quiz');
     }
   };
 
-  const goToPrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
+  const handleCopyLink = () => {
+    try {
+      const url = `${window.location.origin}/generateQuiz/playQuiz?id=${quizId}`;
+      navigator.clipboard.writeText(url);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy link:', error);
+      alert('Failed to copy link');
     }
   };
 
-  const handleSubmit = () => {
-    if (onSubmit) {
-      onSubmit(responses);
-    }
+  const getDifficultyColor = (difficulty: string) => {
+    const lowerDifficulty = difficulty.toLowerCase();
+    if (lowerDifficulty === 'easy') return 'bg-green-100 text-green-800';
+    if (lowerDifficulty === 'medium') return 'bg-yellow-100 text-yellow-800';
+    if (lowerDifficulty === 'hard') return 'bg-red-100 text-red-800';
+    return 'bg-gray-100 text-gray-800';
   };
 
-  const currentQuestion = questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error || !quiz) {
+    return (
+      <div className="text-center p-6 border border-red-200 rounded-lg">
+        <p className="text-lg text-red-500 mb-4">{error || 'Quiz not found'}</p>
+        <button 
+          onClick={() => router.push('/generateQuiz')}
+          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+        >
+          Back to Quiz Generator
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen p-6 bg-gray-100">
-      <div className="max-w-2xl mx-auto rounded-xl shadow-lg overflow-hidden bg-white">
-        {/* Progress bar */}
-        <div className="h-2 bg-gray-200">
-          <div 
-            className="h-full bg-green-500 transition-all duration-500 ease-out"
-            style={{ width: `${progress}%` }}
-          ></div>
+    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="p-6 border-b">
+        <h2 className="text-2xl font-bold mb-2">{quiz.title}</h2>
+        <div className="flex flex-wrap items-center text-sm text-gray-500 gap-x-3">
+          <span>{quiz.totalQuestions} questions</span>
+          <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+          <span>Multiple languages</span>
+          <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+          <span>Mixed difficulty</span>
+        </div>
+      </div>
+      
+      <div className="p-6">
+        <div className="flex flex-wrap gap-4 mb-6">
+          <button 
+            onClick={handlePlay}
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center"
+          >
+            <span className="mr-2">▶</span> Play Quiz
+          </button>
+          
+          <button 
+            onClick={handleEdit}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 flex items-center"
+          >
+            <Edit size={16} className="mr-2" /> Edit
+          </button>
+          
+          <button 
+            onClick={handleDownload}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 flex items-center"
+          >
+            <Download size={16} className="mr-2" /> Download
+          </button>
+          
+          <button 
+            onClick={handleCopyLink}
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 flex items-center"
+          >
+            {copySuccess ? (
+              <>
+                <Check size={16} className="mr-2 text-green-500" /> Copied!
+              </>
+            ) : (
+              <>
+                <Share2 size={16} className="mr-2" /> Share
+              </>
+            )}
+          </button>
         </div>
         
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold">Question {currentQuestionIndex + 1} of {questions.length}</h2>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => toggleFlag(currentQuestion.id)}
-                className={`p-2 rounded-full ${flaggedQuestions.has(currentQuestion.id) ? 'text-red-600' : 'text-gray-400 hover:text-gray-600'}`}
-                title={flaggedQuestions.has(currentQuestion.id) ? "Unflag this question" : "Flag this question"}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M3 6a3 3 0 013-3h10a1 1 0 01.8 1.6L14.25 8l2.55 3.4A1 1 0 0116 13H6a1 1 0 00-1 1v3a1 1 0 11-2 0V6z" clipRule="evenodd" />
-                </svg>
-              </button>
-            </div>
-          </div>
-          
-          <div className="mb-8">
-            <h3 className="text-lg font-medium mb-4">{currentQuestion.text}</h3>
-            <div className="space-y-3">
-              {currentQuestion.answers.map(answer => (
-                <div 
-                  key={answer.id} 
-                  className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <input
-                    type="checkbox"
-                    id={`${currentQuestion.id}-${answer.id}`}
-                    checked={(responses[currentQuestion.id] || []).includes(answer.id)}
-                    onChange={() => handleAnswerChange(currentQuestion.id, answer.id)}
-                    className="h-5 w-5 mr-3 accent-blue-500"
-                  />
-                  <label 
-                    htmlFor={`${currentQuestion.id}-${answer.id}`}
-                    className="w-full cursor-pointer"
+        <h3 className="text-lg font-semibold mb-4">Questions Preview</h3>
+        
+        <div className="space-y-4">
+          {quiz.questions.slice(0, 3).map((question) => (
+            <div key={question.id} className="p-4 border rounded-lg">
+              <div className="flex justify-between items-start mb-2">
+                <h4 className="text-md font-medium">{question.text}</h4>
+                <span className={`text-xs px-2 py-1 rounded-full ${getDifficultyColor(question.difficulty)}`}>
+                  {question.difficulty}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-1 gap-2 mt-2">
+                {question.options.map((option) => (
+                  <div
+                    key={option.id}
+                    className={`p-2 border rounded text-sm ${
+                      option.id === question.correctAnswer
+                        ? 'border-green-300 bg-green-50'
+                        : 'border-gray-200'
+                    }`}
                   >
-                    {answer.text}
-                  </label>
-                </div>
-              ))}
+                    <span className="font-medium mr-1">{option.id}:</span> {option.text}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          ))}
           
-          <div className="flex justify-between mt-6">
-            <button
-              onClick={goToPrevious}
-              disabled={currentQuestionIndex === 0}
-              className={`px-4 py-2 rounded-lg text-white ${
-                currentQuestionIndex === 0 
-                  ? 'bg-gray-300 cursor-not-allowed' 
-                  : 'bg-gray-300 hover:bg-gray-400'
-              }`}
-            >
-              Previous
-            </button>
-            
-            {currentQuestionIndex < questions.length - 1 ? (
+          {quiz.questions.length > 3 && (
+            <div className="text-center py-3 border-t">
+              <p className="text-sm text-gray-500">
+                +{quiz.questions.length - 3} more questions
+              </p>
               <button
-                onClick={goToNext}
-                className="px-4 py-2 rounded-lg text-white bg-blue-500 hover:bg-blue-600"
+                onClick={handlePlay}
+                className="mt-2 text-blue-500 hover:text-blue-700 font-medium"
               >
-                Next
+                Play to see all
               </button>
-            ) : (
-              <button
-                onClick={handleSubmit}
-                className="px-6 py-2 rounded-lg text-white bg-blue-500 hover:bg-blue-600"
-              >
-                Submit
-              </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 };
 
-export default GenerateQuiz;
+export default GeneratedQuiz;
