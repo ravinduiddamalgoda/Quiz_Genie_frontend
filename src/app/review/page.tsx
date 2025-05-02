@@ -10,6 +10,7 @@ import {
   Paper,
   Divider,
   Tooltip,
+  Box,
 } from "@mui/material";
 import {
   StarBorder,
@@ -21,6 +22,7 @@ import {
   SentimentVerySatisfied,
   ArrowBack,
   Send,
+  Visibility,
 } from "@mui/icons-material";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -63,6 +65,7 @@ const ReviewPage = () => {
   const [charCount, setCharCount] = useState(0);
   const [formTouched, setFormTouched] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [hasPreviousReview, setHasPreviousReview] = useState(false);
   
   // Form data and errors
   const [formData, setFormData] = useState<FormDataType>({
@@ -79,6 +82,14 @@ const ReviewPage = () => {
     email: "",
   });
 
+  // Check if there's a previous review in localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const previousReview = localStorage.getItem('reviewData');
+      setHasPreviousReview(!!previousReview);
+    }
+  }, []);
+
   // Update character count and validate form when data changes
   useEffect(() => {
     if (submitted || formTouched) {
@@ -89,6 +100,11 @@ const ReviewPage = () => {
       setCharCount(formData.description.length);
     }
   }, [formData, rating, submitted, activeStep, formTouched]);
+
+  // Navigate to edit/delete page
+  const handleViewPreviousReview = () => {
+    router.push('review/edit_deletePage');
+  };
 
   // Form input handlers
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -188,6 +204,15 @@ const ReviewPage = () => {
   
         // Optional: log or handle response
         console.log("Review submitted:", response.data);
+        
+        // Store review data in localStorage before redirecting
+        const reviewData = {
+          ...formData,
+          rating,
+          date: new Date().toLocaleDateString(),
+        };
+        
+        localStorage.setItem('reviewData', JSON.stringify(reviewData));
   
         toast.update(toastId, {
           render: "Review submitted successfully!",
@@ -217,46 +242,6 @@ const ReviewPage = () => {
       });
     }
   };
-  // // Form submission handler
-  // const handleSubmit = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   setSubmitted(true);
-
-  //   if (validateStep(activeStep)) {
-  //     setIsSubmitting(true);
-  //     const toastId = toast.loading("Submitting your review...");
-
-  //     try {
-  //       await new Promise((resolve) => setTimeout(resolve, 1500));
-        
-  //       // Store review data in localStorage before redirecting
-  //       const reviewData = {
-  //         ...formData,
-  //         rating,
-  //         date: new Date().toLocaleDateString(),
-  //       };
-        
-  //       localStorage.setItem('reviewData', JSON.stringify(reviewData));
-        
-  //       // Redirect to thank you page
-  //       router.push('review/thankYouReview');
-        
-  //     } catch (error) {
-  //       toast.update(toastId, {
-  //         render: "There was a problem submitting your review. Please try again.",
-  //         type: "error",
-  //         isLoading: false,
-  //         autoClose: 5000,
-  //         closeButton: true,
-  //       });
-  //       setIsSubmitting(false);
-  //     }
-  //   } else {
-  //     toast.error("Please correct the errors before submitting.", {
-  //       position: "bottom-center",
-  //     });
-  //   }
-  // };
 
   // Utility functions
   const getStarColor = (index: number): string => {
@@ -525,43 +510,61 @@ const ReviewPage = () => {
             {renderStep()}
 
             {/* Navigation buttons */}
-            <div className="flex justify-between pt-4 mt-6">
-              <Button
-                type="button"
-                variant="outlined"
-                color="inherit"
-                onClick={handleBack}
-                disabled={activeStep === 0 || isSubmitting}
-                startIcon={<ArrowBack />}
-                className={activeStep === 0 ? "invisible" : ""}
-              >
-                Back
-              </Button>
+            
+<div className="flex justify-between pt-4 mt-6">
+  {activeStep === 0 ? (
+    /* View Previous Review Button (left corner when on first step) */
+    hasPreviousReview && (
+      <Button
+        type="button"
+        variant="outlined"
+        color="primary"
+        onClick={handleViewPreviousReview}
+        startIcon={<Visibility />}
+        className="text-blue-600 border-blue-600 hover:bg-blue-50"
+      >
+        View Previous Review
+      </Button>
+    )
+  ) : (
+    /* Back button for steps 1 and 2 */
+    <Button
+      type="button"
+      variant="outlined"
+      color="inherit"
+      onClick={handleBack}
+      disabled={isSubmitting}
+      startIcon={<ArrowBack />}
+    >
+      Back
+    </Button>
+  )}
 
-              {activeStep === 2 ? (
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  disabled={isSubmitting}
-                  endIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <Send />}
-                  className="px-6 py-2 font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
-                >
-                  {isSubmitting ? "Submitting..." : "Submit Review"}
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="contained"
-                  color="primary"
-                  onClick={handleNext}
-                  disabled={isSubmitting}
-                  className="px-6 py-2 font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
-                >
-                  Continue
-                </Button>
-              )}
-            </div>
+  {/* Continue/Submit button always on right */}
+  {activeStep === 2 ? (
+    <Button
+      type="submit"
+      variant="contained"
+      color="primary"
+      disabled={isSubmitting}
+      endIcon={isSubmitting ? <CircularProgress size={20} color="inherit" /> : <Send />}
+      className="px-6 py-2 font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+    >
+      {isSubmitting ? "Submitting..." : "Submit Review"}
+    </Button>
+  ) : (
+    <Button
+      type="button"
+      variant="contained"
+      color="primary"
+      onClick={handleNext}
+      disabled={isSubmitting}
+      className="px-6 py-2 font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg"
+    >
+      Continue
+    </Button>
+  )}
+</div>
           </form>
         </div>
       </div>
