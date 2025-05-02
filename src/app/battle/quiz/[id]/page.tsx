@@ -1,92 +1,66 @@
 'use client';
 import { useState, useEffect } from 'react';
-// import { useRouter } from 'next/router';
 import { useAuthStore } from '@/store/useStore';
 import { useRouter, useSearchParams } from 'next/navigation';
-
-// Quiz questions data
-const quizQuestions = [
-  {
-    question: "What is the capital of France?",
-    options: ["Berlin", "London", "Paris", "Madrid"],
-    correctAnswer: "Paris"
-  },
-  {
-    question: "Which planet is known as the Red Planet?",
-    options: ["Earth", "Mars", "Jupiter", "Venus"],
-    correctAnswer: "Mars"
-  },
-  {
-    question: "Who painted the Mona Lisa?",
-    options: ["Vincent Van Gogh", "Pablo Picasso", "Leonardo da Vinci", "Michelangelo"],
-    correctAnswer: "Leonardo da Vinci"
-  },
-  {
-    question: "What is the largest ocean on Earth?",
-    options: ["Atlantic Ocean", "Indian Ocean", "Arctic Ocean", "Pacific Ocean"],
-    correctAnswer: "Pacific Ocean"
-  },
-  {
-    question: "Which element has the chemical symbol 'O'?",
-    options: ["Osmium", "Oxygen", "Gold", "Oregonium"],
-    correctAnswer: "Oxygen"
-  },
-  {
-    question: "Who wrote 'Romeo and Juliet'?",
-    options: ["Charles Dickens", "William Shakespeare", "Jane Austen", "Mark Twain"],
-    correctAnswer: "William Shakespeare"
-  },
-  {
-    question: "What is the tallest mountain in the world?",
-    options: ["K2", "Mount Everest", "Kangchenjunga", "Makalu"],
-    correctAnswer: "Mount Everest"
-  },
-  {
-    question: "Which country is known as the Land of the Rising Sun?",
-    options: ["China", "Thailand", "Japan", "South Korea"],
-    correctAnswer: "Japan"
-  },
-  {
-    question: "Who discovered penicillin?",
-    options: ["Marie Curie", "Alexander Fleming", "Louis Pasteur", "Joseph Lister"],
-    correctAnswer: "Alexander Fleming"
-  },
-  {
-    question: "What is the largest mammal on Earth?",
-    options: ["African Elephant", "Blue Whale", "Giraffe", "Hippopotamus"],
-    correctAnswer: "Blue Whale"
-  }
-];
+import axios from 'axios';
 
 export default function QuizPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const battleId = searchParams.get('battleId');
-  // const { battleId } = router.query;
+  const quizid = searchParams.get('quiz-id');
+  const battle = searchParams.get('battleid');
   const { user } = useAuthStore();
   
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState(Array(quizQuestions.length).fill(''));
+  const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
   const [score, setScore] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
+  // const token = useAuthStore((state) => state.token);
+  const [quizData, setQuizData] = useState<{ quiz: { title: string; questions: { text: string; options: { text: string; isCorrect: boolean; _id: string }[] }[] } } | null>(null);
 
+  useEffect(() => {
+    if (quizid) {
+      const fetchQuizData = async () => {
+        try {
+          const response = await axios.get(`http://localhost:3600/api/quiz/${quizid}`);
+          console.log('Quiz Data:', response.data);
+          setQuizData(response.data); // Store the fetched quiz data
+          // Initialize selected answers array with empty strings based on the number of questions
+          if (response.data.quiz && response.data.quiz.questions) {
+            setSelectedAnswers(Array(response.data.quiz.questions.length).fill(''));
+          }
+        } catch (err) {
+          console.error('Error fetching quiz data:', err);
+          setError('Failed to fetch quiz data. Please try again.');
+        } finally {
+          setLoading(false);
+        }
+      };
 
-interface QuizQuestion {
-    question: string;
-    options: string[];
-    correctAnswer: string;
-}
+      fetchQuizData();
+    } else {
+      setError('Quiz ID is missing in the URL.');
+      setLoading(false);
+    }
+  }, [quizid]);
 
-const handleOptionSelect = (option: string): void => {
-    const newSelectedAnswers = [...selectedAnswers];
+  interface Option {
+    text: string;
+    isCorrect: boolean;
+    _id: string;
+  }
+
+  const handleOptionSelect = (option: string): void => {
+    const newSelectedAnswers: string[] = [...selectedAnswers];
     newSelectedAnswers[currentQuestion] = option;
     setSelectedAnswers(newSelectedAnswers);
-};
+  };
 
   const handleNext = () => {
-    if (currentQuestion < quizQuestions.length - 1) {
+    if (quizData && currentQuestion < quizData.quiz.questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     }
   };
@@ -98,9 +72,12 @@ const handleOptionSelect = (option: string): void => {
   };
 
   const calculateScore = () => {
+    if (!quizData) return 0;
+    
     let correctCount = 0;
-    for (let i = 0; i < quizQuestions.length; i++) {
-      if (selectedAnswers[i] === quizQuestions[i].correctAnswer) {
+    for (let i = 0; i < quizData.quiz.questions.length; i++) {
+      const correctOption = quizData.quiz.questions[i].options.find(opt => opt.isCorrect);
+      if (correctOption && selectedAnswers[i] === correctOption.text) {
         correctCount++;
       }
     }
@@ -120,12 +97,14 @@ const handleOptionSelect = (option: string): void => {
 
     try {
       const payload = {
-        userId: user?.id || '',
+        userId: user?.id,
         correctAnswers: finalScore,
-        totalQuestions: quizQuestions.length,
+        totalQuestions: quizData?.quiz?.questions?.length,
         round: 2,
-        battleId: battleId
+        battleId: battle,
       };
+
+      console.log('Payload:', payload);
 
       const response = await fetch('http://localhost:3600/api/score/submitAnswers', {
         method: 'POST',
@@ -134,8 +113,10 @@ const handleOptionSelect = (option: string): void => {
         },
         body: JSON.stringify(payload),
       });
+
       
       if (!response.ok) {
+        console.error('Error submitting answers:', response);
         throw new Error('Failed to submit answers');
       }
       
@@ -150,8 +131,16 @@ const handleOptionSelect = (option: string): void => {
     }
   };
 
-  if (!battleId) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">Loading quiz data...</div>;
+  }
+
+  if (error && !quizData) {
+    return <div className="flex justify-center items-center h-screen text-red-500">{error}</div>;
+  }
+
+  if (!quizData || !quizData.quiz) {
+    return <div className="flex justify-center items-center h-screen">No quiz data available</div>;
   }
 
   if (quizCompleted) {
@@ -159,7 +148,7 @@ const handleOptionSelect = (option: string): void => {
       <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md my-10">
         <h1 className="text-2xl font-bold text-center mb-6">Quiz Completed!</h1>
         <div className="text-center">
-          <p className="text-xl mb-4">Your score: {score} out of {quizQuestions.length}</p>
+          <p className="text-xl mb-4">Your score: {score} out of {quizData.quiz.questions.length}</p>
           <p className="text-green-600 font-semibold mb-6">
             Your answers have been submitted successfully!
           </p>
@@ -174,27 +163,29 @@ const handleOptionSelect = (option: string): void => {
     );
   }
 
+  const currentQuizQuestion = quizData.quiz.questions[currentQuestion];
+
   return (
     <div className="max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-md my-10">
       <div className="mb-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Quiz Challenge</h1>
+        <h1 className="text-2xl font-bold">{quizData.quiz.title}</h1>
         <span className="text-gray-600">
-          Question {currentQuestion + 1} of {quizQuestions.length}
+          Question {currentQuestion + 1} of {quizData.quiz.questions.length}
         </span>
       </div>
 
       <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">{quizQuestions[currentQuestion].question}</h2>
+        <h2 className="text-xl font-semibold mb-4">{currentQuizQuestion.text}</h2>
         <div className="space-y-3">
-          {quizQuestions[currentQuestion].options.map((option, index) => (
+          {currentQuizQuestion.options.map((option, index) => (
             <div 
-              key={index}
+              key={option._id}
               className={`p-3 border rounded-md cursor-pointer hover:bg-gray-50 ${
-                selectedAnswers[currentQuestion] === option ? 'bg-blue-100 border-blue-400' : ''
+                selectedAnswers[currentQuestion] === option.text ? 'bg-blue-100 border-blue-400' : ''
               }`}
-              onClick={() => handleOptionSelect(option)}
+              onClick={() => handleOptionSelect(option.text)}
             >
-              {option}
+              {option.text}
             </div>
           ))}
         </div>
@@ -215,7 +206,7 @@ const handleOptionSelect = (option: string): void => {
           Previous
         </button>
 
-        {currentQuestion < quizQuestions.length - 1 ? (
+        {currentQuestion < quizData.quiz.questions.length - 1 ? (
           <button
             onClick={handleNext}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
@@ -237,7 +228,7 @@ const handleOptionSelect = (option: string): void => {
 
       <div className="mt-8">
         <div className="flex justify-center">
-          {quizQuestions.map((_, index) => (
+          {quizData.quiz.questions.map((_, index) => (
             <div 
               key={index}
               onClick={() => setCurrentQuestion(index)}
