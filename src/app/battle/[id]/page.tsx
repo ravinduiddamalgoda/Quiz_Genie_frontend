@@ -109,7 +109,7 @@ const SingleBattleInterface: React.FC = () => {
           View Leaderboard
         </button>
         <button
-          onClick={() => window.location.href = `/battle/${id}/quiz`}
+          onClick={() => window.location.href = `/battle/quiz/[id]?battleId=${id}`}
           className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition"
         >
           Attempt Quiz
