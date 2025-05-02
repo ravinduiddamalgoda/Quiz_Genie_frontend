@@ -19,6 +19,7 @@ interface PDFDocument {
   description: string;
   key: string;
   downloadUrl?: string;
+  isIndexed?: boolean;
 }
 
 interface FormDataInterface {
@@ -84,7 +85,8 @@ export default function PDFManager() {
   const [editIndex, setEditIndex] = useState<number | null>(null); // Index of PDF to edit
   const [editId, setEditId] = useState<string | null>(null); // ID of PDF to edit
   const [fullDescription, setFullDescription] = useState<PDFDocument | null>(null); // State for full description modal
-
+  const [isReindexing, setIsReindexing] = useState<boolean>(false);
+  const [reindexingId, setReindexingId] = useState<string | null>(null);
   const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB in bytes
 
   const onDrop = (acceptedFiles: File[]): void => {
@@ -467,6 +469,45 @@ export default function PDFManager() {
       });
     }
   };
+  const handleReindex = async (id: string): Promise<void> => {
+    try {
+      // Set reindexing state
+      setIsReindexing(true);
+      setReindexingId(id);
+      
+      // Call the reindex API
+      const response = await axios.post(`http://localhost:3600/api/files/reindex/${id}`, {}, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      });
+      
+      if (response.status === 200) {
+        // Refresh the PDF list
+        getPdf();
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'PDF Indexed!',
+          text: 'Your PDF has been successfully indexed.',
+        });
+      } else {
+        throw new Error("Unexpected response");
+      }
+    } catch (error) {
+      console.error("Indexing Failed ❌", error);
+      
+      Swal.fire({
+        icon: 'error',
+        title: 'Indexing Failed',
+        text: 'Please try again later.',
+      });
+    } finally {
+      // Reset reindexing state
+      setIsReindexing(false);
+      setReindexingId(null);
+    }
+  };
 
   return (
     <div className={`min-h-screen bg-gray-100 flex flex-col items-center p-8 ${showModal || showEditModal ? 'backdrop-blur-sm' : ''}`}>
@@ -490,6 +531,7 @@ export default function PDFManager() {
                 <th className="p-3">Subject</th>
                 <th className="p-3">Description</th>
                 <th className="p-3">Date Added</th>
+                <th className="p-3">Index Status</th>
                 <th className="p-3">Actions</th>
               </tr>
             </thead>
@@ -519,6 +561,21 @@ export default function PDFManager() {
                       </button>
                     </td>
                     <td className="p-3 text-black">{getDateFromObjectId(pdf._id)}</td>
+                    <td className="p-3 text-black">
+                      {pdf.isIndexed ? (
+                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                          Indexed
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleReindex(pdf._id)}
+                          className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium hover:bg-yellow-200 focus:outline-none"
+                          disabled={isReindexing && reindexingId === pdf._id}
+                        >
+                          {isReindexing && reindexingId === pdf._id ? 'Indexing...' : 'Not Indexed'}
+                        </button>
+                      )}
+                    </td>
                     <td className="p-3 text-black flex gap-2 items-center">
                       <FaEye
                         onClick={() => handleView(pdf._id)}
@@ -737,6 +794,17 @@ export default function PDFManager() {
                 Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {isReindexing && (
+        <div className="fixed inset-0 flex items-center justify-center bg-opacity-50 backdrop-blur-md">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-96 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#1E3F66] mx-auto mb-4"></div>
+            <h2 className="text-xl font-bold mb-2 text-[#1E3F66]">Indexing PDF</h2>
+            <p className="text-gray-600">
+              This may take a moment. The system is extracting and indexing text from your PDF...
+            </p>
           </div>
         </div>
       )}
