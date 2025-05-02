@@ -31,6 +31,7 @@ const SingleBattleInterface: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>('overview');
+  const [quizId, setQuizId] = useState<string | null>(null);
 
   const customMenuItems = [
     { label: 'My Battle', href: '/battle/enrollerdBattle' },
@@ -81,8 +82,9 @@ const SingleBattleInterface: React.FC = () => {
         try {
           setLoading(true);
           const response = await axios.get(`http://localhost:3600/api/battle/${id}`);
-          console.log('Battle Details Response:', response.data);
+          // console.log('Battle Details Response:', response.data.quiz);
           setBattle(response.data);
+          setQuizId(response.data.quiz);
           setError(null);
         } catch (err) {
           console.error("Error fetching battle details:", err);
@@ -101,8 +103,10 @@ const SingleBattleInterface: React.FC = () => {
       const fetchLeaderboardDetails = async () => {
         try {
           const response = await axios.get(`http://localhost:3600/api/leaderboard/${id}`);
-          console.log('Leaderboard Details Response:', response.data);
+          // console.log('Leaderboard Details Response:', response.data.quizId);
           setLeaderboard(response.data);
+          
+          
         } catch (err) {
           console.error("Error fetching leaderboard details:", err);
           // Don't set error here to not interrupt the main UI if leaderboard fails
@@ -112,6 +116,8 @@ const SingleBattleInterface: React.FC = () => {
       fetchLeaderboardDetails();
     }
   }, [id]);
+
+  // console.log('Quiz ID:', quizId);
 
   const formatDate = (dateString: string | undefined): string => {
     if (!dateString) return 'N/A';
@@ -460,7 +466,7 @@ const SingleBattleInterface: React.FC = () => {
                   <h3 className="text-lg font-bold mb-2">Attempt Quiz</h3>
                   <p className="text-gray-600 mb-4">Take the quiz challenge and earn points to climb the leaderboard.</p>
                   <button
-                    onClick={() => window.location.href = `/battle/quiz/[id]?battleId=${id}`}
+                    onClick={() => window.location.href = `/battle/quiz/[id]?quiz-id=${quizId}&battleid=${id}`}
                     className="w-full py-2 rounded-lg bg-gradient-to-r from-green-500 to-green-700 text-white font-medium hover:opacity-90 transition-opacity flex items-center justify-center"
                   >
                     <span>Start Quiz</span>
