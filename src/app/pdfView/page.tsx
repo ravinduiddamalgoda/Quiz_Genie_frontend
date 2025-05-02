@@ -4,11 +4,13 @@ import { FaPlus, FaEye, FaEdit, FaTrashAlt, FaFilePdf, FaDownload } from 'react-
 import { useDropzone } from 'react-dropzone';
 import Swal from 'sweetalert2';
 import axios from 'axios';
+// Import jsPDF correctly
 import { jsPDF } from 'jspdf';
+// Import autoTable and apply it correctly
 import 'jspdf-autotable';
-// import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { useAuthStore } from '@/store/useStore';
+
+
 // Define TypeScript interfaces
 interface PDFDocument {
   _id: string;
@@ -16,6 +18,7 @@ interface PDFDocument {
   subject: string;
   description: string;
   key: string;
+  downloadUrl?: string;
 }
 
 interface FormDataInterface {
@@ -35,7 +38,7 @@ export default function PDFManager() {
   const [title, setTitle] = useState<string>("");
   const [subject, setSubject] = useState<string>("");
   const [description, setDescription] = useState<string>("");
-  const [allImage, setAllImage] = useState<PDFDocument[]>([]);  //fetch
+  const [allImage, setAllImage] = useState<PDFDocument[]>([]);  // fetch
   
   const token = useAuthStore((state) => state.token);
   // Fetch the PDFs from the backend
@@ -138,12 +141,11 @@ export default function PDFManager() {
     return errors;
   };
   
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
   
     const errors = validateForm();
-    setFormErrors(errors);
+    setFormErrors(errors as FormErrorsInterface);
   
     if (Object.keys(errors).length === 0) {
       console.log("Preparing FormData for submission...");
@@ -160,6 +162,7 @@ export default function PDFManager() {
         const response = await axios.post("http://localhost:3600/api/files/upload-file", data, {
           headers: {
             "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
           },
         });
       
@@ -197,8 +200,28 @@ export default function PDFManager() {
     }
   };
   
-  const handleView = (pdfKey: string): void => {
-    window.open(`http://localhost:3600/api/files/get-files/${pdfKey}`, '_blank', 'noreferrer');
+  // Modified handleView function to fetch the download URL and open it in a new tab
+  const handleView = async (id: string): Promise<void> => {
+    try {
+      const response = await axios.get(`http://localhost:3600/api/files/download/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      
+      if (response.data.status === "success" && response.data.data.downloadUrl) {
+        window.open(response.data.data.downloadUrl, '_blank', 'noreferrer');
+      } else {
+        throw new Error("Failed to get download URL");
+      }
+    } catch (error) {
+      console.error("Error fetching download URL:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to open PDF. Please try again.',
+      });
+    }
   };
 
   const handleEdit = (pdf: PDFDocument, index: number): void => {
@@ -228,7 +251,12 @@ export default function PDFManager() {
     }).then(async (result) => {
       if (result.isConfirmed) {
         try {
-          await axios.delete(`http://localhost:3600/delete-file/${id}`);
+          // Fixed the delete endpoint URL
+          await axios.delete(`http://localhost:3600/api/files/delete-file/${id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
           // After successful deletion, refresh the PDF list
           getPdf();
           Swal.fire({
@@ -274,14 +302,16 @@ export default function PDFManager() {
         data.append("subject", formData.subject);
         data.append("description", formData.description);
         
+        // Only append file if a new file was selected
         if (selectedFile) {
           data.append("selectedFile", selectedFile);
         }
         
-        // Send update request to backend
+        // Send update request to backend with proper URL and headers
         const response = await axios.put(`http://localhost:3600/api/files/update-file/${editId}`, data, {
           headers: {
             "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${token}`,
           },
         });
         
@@ -310,10 +340,13 @@ export default function PDFManager() {
       } catch (error) {
         console.error("Update Failed ❌", error);
         
+        // Show more detailed error information
+        const errorMessage = error.response?.data?.message || 'Please try again.';
+        
         Swal.fire({
           icon: 'error',
           title: 'Update Failed',
-          text: 'Please try again.',
+          text: errorMessage,
         });
       }
     } else if (!editId) {
@@ -357,64 +390,82 @@ export default function PDFManager() {
     return new Date(parseInt(objectId.substring(0, 8), 16) * 1000).toLocaleDateString();
   };
 
-  // Function to generate and download a PDF with table data
+  // Fixed function to generate and download a PDF with table data
   const handleDownloadTableData = (): void => {
-    // Create a new PDF document
-    const doc = new jsPDF();
-    
-    // Set document properties
-    doc.setProperties({
-      title: 'PDF Manager - Document List',
-      author: 'PDF Manager',
-      creator: 'PDF Manager Application'
-    });
-    
-    // Add title to the PDF
-    doc.setFontSize(18);
-    doc.setTextColor(30, 63, 102); // #1E3F66
-    doc.text('PDF Manager - Document List', 14, 20);
-    doc.setFontSize(12);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 26);
-    
-    // Create table data
-    const tableColumn = ["Title", "Subject", "Description", "Date Added"];
-    
-    // Map the data from allImage state to table rows
-    const tableRows = allImage.map((pdf) => [
-      pdf.title,
-      pdf.subject,
-      // Truncate description for better fit in PDF
-      pdf.description.length > 60 ? 
-        pdf.description.substring(0, 60) + '...' : 
-        pdf.description,
-      getDateFromObjectId(pdf._id)
-    ]);
-    
-    
-    // Generate the table
-    doc.autoTable({
-      head: [tableColumn],
-      body: tableRows,
-      startY: 35,
-      theme: 'striped',
-      styles: { fontSize: 10, cellPadding: 3 },
-      headStyles: { fillColor: [30, 63, 102], textColor: [255, 255, 255] },
-      alternateRowStyles: { fillColor: [240, 240, 240] },
-      margin: { top: 35 }
-    });
-    
-    // Save the PDF
-    doc.save('pdf-manager-documents.pdf');
-    
-    // Show success notification
-    Swal.fire({
-      icon: 'success',
-      title: 'PDF Downloaded',
-      text: 'Your document list has been downloaded as a PDF.',
-      timer: 2000,
-      showConfirmButton: false
-    });
+    try {
+      // Create a new jsPDF document
+      const doc = new jsPDF();
+      
+      // Set document properties
+      doc.setProperties({
+        title: 'PDF Manager - Document List',
+        author: 'PDF Manager',
+        creator: 'PDF Manager Application'
+      });
+      
+      // Add title to the PDF
+      doc.setFontSize(18);
+      doc.setTextColor(30, 63, 102); // #1E3F66
+      doc.text('PDF Manager - Document List', 14, 20);
+      doc.setFontSize(12);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, 14, 26);
+      
+      // Create table data with all columns except Actions
+      const tableColumn = ["Title", "Subject", "Description", "Date Added"];
+      
+      // Map the data from allImage state to table rows
+      const tableRows = allImage.map((pdf) => [
+        pdf.title,
+        pdf.subject,
+        // Truncate description for better fit in PDF
+        pdf.description.length > 60 ? 
+          pdf.description.substring(0, 60) + '...' : 
+          pdf.description,
+        getDateFromObjectId(pdf._id)
+      ]);
+      
+      // Import autoTable dynamically to ensure it's registered
+      import('jspdf-autotable').then((autoTableModule) => {
+        // Use the autoTable function
+        autoTableModule.default(doc, {
+          head: [tableColumn],
+          body: tableRows,
+          startY: 35,
+          theme: 'striped',
+          styles: { fontSize: 10, cellPadding: 3 },
+          headStyles: { fillColor: [30, 63, 102], textColor: [255, 255, 255] },
+          alternateRowStyles: { fillColor: [240, 240, 240] },
+          margin: { top: 35 }
+        });
+        
+        // Save the PDF - this triggers the download
+        doc.save('pdf-manager-documents.pdf');
+        
+        // Show success notification
+        Swal.fire({
+          icon: 'success',
+          title: 'PDF Downloaded',
+          text: 'Your document list has been downloaded as a PDF.',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      }).catch((error) => {
+        console.error("Error loading autoTable:", error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to generate PDF. Please try again.',
+        });
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to generate PDF. Please try again.',
+      });
+    }
   };
 
   return (
@@ -470,16 +521,19 @@ export default function PDFManager() {
                     <td className="p-3 text-black">{getDateFromObjectId(pdf._id)}</td>
                     <td className="p-3 text-black flex gap-2 items-center">
                       <FaEye
-                        onClick={() => handleView(pdf.key)}
+                        onClick={() => handleView(pdf._id)}
                         className="text-black cursor-pointer hover:text-gray-700"
+                        title="View PDF"
                       />
                       <FaEdit
                         onClick={() => handleEdit(pdf, index)}
                         className="text-black cursor-pointer hover:text-gray-700"
+                        title="Edit PDF"
                       />
                       <FaTrashAlt
                         onClick={() => handleDelete(pdf._id)}
                         className="text-red-600 cursor-pointer hover:text-red-800"
+                        title="Delete PDF"
                       />
                     </td>
                   </tr>
@@ -496,7 +550,7 @@ export default function PDFManager() {
               onClick={handleDownloadTableData}
               className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md shadow-md hover:bg-green-700"
             >
-              <FaDownload /> Download Table as PDF
+              <FaDownload /> PDF Details Report
             </button>
           </div>
         )}
@@ -566,7 +620,12 @@ export default function PDFManager() {
               <div className="flex justify-between mt-4">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    setFormData({ title: '', subject: '', description: '' });
+                    setSelectedFile(null);
+                    setFormErrors({ title: '', subject: '', description: '', file: '' });
+                  }}
                   className="bg-gray-300 text-black py-2 px-4 rounded-md hover:bg-gray-400"
                 >
                   Cancel
