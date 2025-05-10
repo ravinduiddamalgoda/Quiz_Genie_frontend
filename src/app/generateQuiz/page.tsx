@@ -19,13 +19,22 @@ interface ServerPdf {
 }
 
 const GenerateQuizPage: React.FC = () => {
-    const router = useRouter();
     const [prompt, setPrompt] = useState<string>('');
     const [selectedPdfs, setSelectedPdfs] = useState<ServerPdf[]>([]);
     const [availablePdfs, setAvailablePdfs] = useState<ServerPdf[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [showPdfSelector, setShowPdfSelector] = useState<boolean>(false);
-    const token = useAuthStore((state) => state.token);
+    const router = useRouter()
+      const { user } = useAuthStore();
+      const token = useAuthStore((state) => state.token);
+      useEffect(() => {
+        if (!user || !token) {
+    
+          // toast.info('You need to log in');
+          alert('You need to log in');
+          router.push('/user/login');
+        }
+      }, [user, token, router]);
 
     // Fetch PDFs from API
     useEffect(() => {

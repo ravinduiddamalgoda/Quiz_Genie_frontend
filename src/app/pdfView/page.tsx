@@ -9,6 +9,7 @@ import { jsPDF } from 'jspdf';
 // Import autoTable and apply it correctly
 import 'jspdf-autotable';
 import { useAuthStore } from '@/store/useStore';
+import { useRouter } from 'next/navigation'
 
 
 // Define TypeScript interfaces
@@ -40,8 +41,18 @@ export default function PDFManager() {
   const [subject, setSubject] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [allImage, setAllImage] = useState<PDFDocument[]>([]);  // fetch
+    const router = useRouter()
+      const { user } = useAuthStore();
+      const token = useAuthStore((state) => state.token);
+      useEffect(() => {
+        if (!user || !token) {
+    
+          // toast.info('You need to log in');
+          alert('You need to log in');
+          router.push('/user/login');
+        }
+      }, [user, token, router]);
   
-  const token = useAuthStore((state) => state.token);
   // Fetch the PDFs from the backend
   useEffect(() => {
     getPdf();

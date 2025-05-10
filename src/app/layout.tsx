@@ -17,8 +17,7 @@ export default function RootLayout({
     { label: 'Battle', href: '/battle' },
     { label: 'Review', href: '/review' },
     { label: 'Generate Quiz', href: '/generateQuiz' },
-    { label: 'PDF Manage', href: '/pdfView' },
-    { label: 'About', href: '/sample' },
+    { label: 'PDF Manage', href: '/pdfView' }
   ];
 
   // Add auth buttons only if user is NOT logged in
